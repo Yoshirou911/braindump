@@ -383,6 +383,68 @@
 
   .empty-hint { font-size: .78rem; color: var(--text-muted); text-align: center; padding: 8px 0; }
 
+  /* ─── 作業ログ ─── */
+  .log-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-top: 20px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .log-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+  }
+  .log-section.open .log-header { border-bottom-color: var(--border); }
+  .log-title { font-size: .9rem; font-weight: 600; flex: 1; }
+  .log-count { font-size: .75rem; color: var(--text-muted); background: var(--bg); border-radius: 20px; padding: 1px 8px; }
+  .log-toggle { font-size: .7rem; color: var(--text-muted); transition: transform .2s; }
+  .log-section.open .log-toggle { transform: rotate(180deg); }
+  .log-body { display: none; padding: 12px; }
+  .log-section.open .log-body { display: block; }
+  .log-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .log-textarea {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: .85rem;
+    font-family: inherit;
+    line-height: 1.5;
+    resize: none;
+    outline: none;
+    background: var(--bg);
+    min-height: 60px;
+  }
+  .log-textarea:focus { border-color: #999; }
+  .log-entries { display: flex; flex-direction: column; gap: 8px; }
+  .log-entry {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 9px 11px;
+    background: var(--bg);
+  }
+  .log-entry-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .log-date { font-size: .72rem; color: var(--text-muted); font-weight: 600; }
+  .log-del {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: .85rem;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .log-entry:hover .log-del { opacity: 1; }
+  .log-text { font-size: .85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+
   @media (min-width: 640px) {
     body { padding: 32px 32px 64px; max-width: 720px; margin: 0 auto; }
     h1 { font-size: 1.25rem; }
@@ -431,6 +493,23 @@
 
 <!-- レーン -->
 <div class="lanes" id="lanes-container"></div>
+
+<!-- 作業ログ -->
+<div class="log-section" id="log-section">
+  <div class="log-header" id="log-header">
+    <span>📝</span>
+    <span class="log-title">作業ログ</span>
+    <span class="log-count" id="log-count">0</span>
+    <span class="log-toggle">▾</span>
+  </div>
+  <div class="log-body">
+    <div class="log-input-row">
+      <textarea class="log-textarea" id="log-input" placeholder="今日やったこと、気づき、進捗など…"></textarea>
+      <button class="btn-primary" id="log-add-btn" style="align-self:flex-end">記録</button>
+    </div>
+    <div class="log-entries" id="log-entries"></div>
+  </div>
+</div>
 
 <!-- トースト -->
 <div id="toast"></div>
@@ -817,6 +896,55 @@ function uid() {
 }
 
 render();
+
+// ─── 作業ログ ───
+function loadLogs() {
+  try { return JSON.parse(localStorage.getItem('bd_logs') || '[]'); } catch { return []; }
+}
+function saveLogs() { localStorage.setItem('bd_logs', JSON.stringify(logs)); }
+
+let logs = loadLogs();
+
+document.getElementById('log-header').addEventListener('click', () => {
+  document.getElementById('log-section').classList.toggle('open');
+});
+
+document.getElementById('log-add-btn').addEventListener('click', () => {
+  const text = document.getElementById('log-input').value.trim();
+  if (!text) return;
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+  logs.unshift({ id: uid(), date: dateStr, text });
+  saveLogs();
+  document.getElementById('log-input').value = '';
+  renderLogs();
+  showToast('記録しました');
+});
+
+function renderLogs() {
+  const container = document.getElementById('log-entries');
+  const countEl = document.getElementById('log-count');
+  countEl.textContent = logs.length;
+  container.innerHTML = '';
+  logs.forEach(entry => {
+    const el = document.createElement('div');
+    el.className = 'log-entry';
+    el.innerHTML = `
+      <div class="log-entry-header">
+        <span class="log-date">${entry.date}</span>
+        <button class="log-del" title="削除">×</button>
+      </div>
+      <div class="log-text">${entry.text.replace(/</g,'&lt;')}</div>`;
+    el.querySelector('.log-del').addEventListener('click', () => {
+      logs = logs.filter(l => l.id !== entry.id);
+      saveLogs();
+      renderLogs();
+    });
+    container.appendChild(el);
+  });
+}
+
+renderLogs();
 </script>
 </body>
 </html>
