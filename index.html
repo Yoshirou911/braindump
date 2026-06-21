@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ブレインダンプ</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --border: #e0e0dc;
+    --text: #2c2c2a;
+    --text-muted: #9a9a96;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.06);
+
+    --lane-unsorted: #f0f0ee;
+    --lane-now:      #fff3f2;
+    --lane-do:       #f0faf3;
+    --lane-grow:     #fffbee;
+    --lane-let:      #f5f5f5;
+
+    --accent-unsorted: #b0b0aa;
+    --accent-now:      #e05252;
+    --accent-do:       #3aaa60;
+    --accent-grow:     #d4a017;
+    --accent-let:      #9a9a96;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: .02em; }
+  .subtitle { font-size: .8rem; color: var(--text-muted); margin-bottom: 16px; }
+
+  /* ─── APIキー設定 ─── */
+  .api-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .api-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    cursor: pointer;
+    user-select: none;
+    font-size: .78rem;
+    color: var(--text-muted);
+  }
+  .api-toggle:hover { color: var(--text); }
+  .api-toggle-arrow { font-size: .65rem; transition: transform .2s; }
+  .api-section.open .api-toggle-arrow { transform: rotate(90deg); }
+  .api-body {
+    display: none;
+    padding: 12px 14px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .api-section.open .api-body { display: block; }
+  .api-body label { font-size: .72rem; color: var(--text-muted); display: block; margin-bottom: 5px; }
+  .api-row { display: flex; gap: 8px; }
+  #api-key-input {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: .82rem;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    font-family: monospace;
+    letter-spacing: .04em;
+  }
+  #api-key-input:focus { border-color: #999; }
+  .api-note { font-size: .7rem; color: var(--text-muted); margin-top: 7px; line-height: 1.5; }
+
+  /* ─── ブレインダンプ ─── */
+  .dump-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .dump-section > label {
+    display: block;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 8px;
+  }
+  #dump-area {
+    width: 100%;
+    min-height: 110px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: .95rem;
+    line-height: 1.6;
+    resize: vertical;
+    background: var(--bg);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s;
+    font-family: inherit;
+  }
+  #dump-area:focus { border-color: #999; }
+  #dump-area::placeholder { color: var(--text-muted); }
+  .dump-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  /* ─── ボタン ─── */
+  .btn-primary {
+    background: var(--text);
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+    white-space: nowrap;
+  }
+  .btn-primary:hover:not(:disabled) { opacity: .75; }
+  .btn-primary:disabled { opacity: .4; cursor: default; }
+  .btn-ai {
+    background: #5b4cdb;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .btn-ai:hover:not(:disabled) { opacity: .8; }
+  .btn-ai:disabled { opacity: .4; cursor: default; }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: .8rem;
+    cursor: pointer;
+    transition: border-color .15s;
+    white-space: nowrap;
+  }
+  .btn-ghost:hover { border-color: #999; color: var(--text); }
+
+  /* ─── ローディングスピナー ─── */
+  .spinner {
+    width: 13px; height: 13px;
+    border: 2px solid rgba(255,255,255,.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .6s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ─── トースト通知 ─── */
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(12px);
+    background: #333;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: .82rem;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #toast.error { background: #c0392b; }
+
+  /* ─── レーン ─── */
+  .lanes { display: flex; flex-direction: column; gap: 14px; }
+  .lane {
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .lane-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .lane-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .lane-title { font-size: .9rem; font-weight: 600; flex: 1; }
+  .lane-count {
+    font-size: .75rem;
+    color: var(--text-muted);
+    background: var(--bg);
+    border-radius: 20px;
+    padding: 1px 8px;
+    min-width: 22px;
+    text-align: center;
+  }
+  .lane-toggle { font-size: .7rem; color: var(--text-muted); transition: transform .2s; }
+  .lane.collapsed .lane-toggle { transform: rotate(-90deg); }
+  .lane-body { padding: 10px; min-height: 46px; transition: background .15s; }
+  .lane.collapsed .lane-body { display: none; }
+  .lane-body.drag-over { background: rgba(0,0,0,.04); }
+
+  /* ─── カード ─── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    cursor: grab;
+    transition: box-shadow .15s, opacity .15s;
+  }
+  .card:last-child { margin-bottom: 0; }
+  .card:active { cursor: grabbing; }
+  .card.dragging { opacity: .4; box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+
+  .card-top { display: flex; align-items: flex-start; gap: 8px; }
+  .card-check {
+    margin-top: 2px;
+    width: 16px; height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: var(--text);
+  }
+  .card-text { flex: 1; font-size: .9rem; line-height: 1.5; word-break: break-word; }
+  .card.done .card-text { text-decoration: line-through; color: var(--text-muted); }
+  .card-del {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .card:hover .card-del { opacity: 1; }
+
+  /* ─── 期限 ─── */
+  .card-due-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .due-label {
+    font-size: .7rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  /* 実際のdate inputは非表示にしてボタンから開く */
+  .card-due {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+  }
+  .due-btn {
+    font-size: .75rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    background: var(--bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color .1s, background .1s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .due-btn:hover { border-color: #999; color: var(--text); }
+  .due-btn.due-today   { border-color: #e08c30; color: #c07010; background: #fff8f0; font-weight: 600; }
+  .due-btn.due-overdue { border-color: var(--accent-now); color: var(--accent-now); background: #fff3f2; font-weight: 600; }
+  .due-btn.due-soon    { border-color: #d4a017; color: #b88a10; background: #fffbee; }
+  .due-clear {
+    font-size: .75rem;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: none;
+    line-height: 1;
+  }
+  .card-due-row:hover .due-clear { display: inline; }
+
+  /* ─── メモ ─── */
+  .card-memo {
+    margin-top: 6px;
+    font-size: .78rem;
+    color: var(--text-muted);
+    border: none;
+    background: transparent;
+    width: 100%;
+    resize: none;
+    outline: none;
+    font-family: inherit;
+    line-height: 1.5;
+    min-height: 20px;
+    height: auto;
+    overflow: hidden;
+  }
+  .card-memo::placeholder { color: #ccc; }
+
+  /* ─── 移動ボタン ─── */
+  .card-move { margin-top: 8px; display: none; flex-wrap: wrap; gap: 4px; }
+  .card:hover .card-move { display: flex; }
+  .move-btn {
+    font-size: .7rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color .1s, color .1s;
+  }
+  .move-btn:hover { border-color: #888; color: var(--text); }
+
+  /* ─── カラーテーマ ─── */
+  .lane[data-lane="unsorted"] .lane-dot  { background: var(--accent-unsorted); }
+  .lane[data-lane="now"]      .lane-dot  { background: var(--accent-now); }
+  .lane[data-lane="do"]       .lane-dot  { background: var(--accent-do); }
+  .lane[data-lane="grow"]     .lane-dot  { background: var(--accent-grow); }
+  .lane[data-lane="let"]      .lane-dot  { background: var(--accent-let); }
+  .lane[data-lane="unsorted"] .lane-body { background: var(--lane-unsorted); }
+  .lane[data-lane="now"]      .lane-body { background: var(--lane-now); }
+  .lane[data-lane="do"]       .lane-body { background: var(--lane-do); }
+  .lane[data-lane="grow"]     .lane-body { background: var(--lane-grow); }
+  .lane[data-lane="let"]      .lane-body { background: var(--lane-let); }
+
+  .empty-hint { font-size: .78rem; color: var(--text-muted); text-align: center; padding: 8px 0; }
+
+  @media (min-width: 640px) {
+    body { padding: 32px 32px 64px; max-width: 720px; margin: 0 auto; }
+    h1 { font-size: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>ブレインダンプ</h1>
+</div>
+<p class="subtitle">頭の中を全部書き出して、整理して、空にする。</p>
+
+<!-- APIキー設定 -->
+<div class="api-section" id="api-section">
+  <div class="api-toggle" id="api-toggle">
+    <span class="api-toggle-arrow">▶</span>
+    <span id="api-status-label">AI分類の設定（APIキー）</span>
+  </div>
+  <div class="api-body">
+    <label>Groq APIキー（無料）</label>
+    <div class="api-row">
+      <input type="password" id="api-key-input" placeholder="gsk_..." autocomplete="off">
+      <button class="btn-ghost" id="save-key-btn">保存</button>
+    </div>
+    <p class="api-note">
+      キーはこのブラウザの localStorage にのみ保存されます。サーバーには送信されません。<br>
+      無料取得: <a href="https://console.groq.com/keys" target="_blank" rel="noopener" style="color:inherit">console.groq.com/keys</a>（無料・クレカ不要）
+    </p>
+  </div>
+</div>
+
+<!-- ブレインダンプ欄 -->
+<div class="dump-section">
+  <label>今頭にあること（1行1項目）</label>
+  <textarea id="dump-area" placeholder="メール返信&#10;資料作成&#10;病院の予約&#10;…"></textarea>
+  <div class="dump-actions">
+    <button class="btn-ghost" id="clear-dump">クリア</button>
+    <button class="btn-primary" id="convert-btn">タスク化 →</button>
+    <button class="btn-ai" id="ai-btn">
+      <span id="ai-btn-icon">✦</span>
+      <span id="ai-btn-label">AI分類</span>
+    </button>
+  </div>
+</div>
+
+<!-- レーン -->
+<div class="lanes" id="lanes-container"></div>
+
+<!-- トースト -->
+<div id="toast"></div>
+
+<script>
+const LANE_DEFS = [
+  { id: 'unsorted', label: '未分類' },
+  { id: 'now',      label: '今すぐ・期限あり' },
+  { id: 'do',       label: '進める・決定済み' },
+  { id: 'grow',     label: '育てる' },
+  { id: 'let',      label: '手放す・保留' },
+];
+
+// ─── ストレージ ───
+function loadTasks() {
+  try { return JSON.parse(localStorage.getItem('bd_tasks') || '[]'); } catch { return []; }
+}
+function saveTasks() { localStorage.setItem('bd_tasks', JSON.stringify(tasks)); }
+function loadKey()   { return localStorage.getItem('bd_api_key') || ''; }
+function saveKey(k)  { localStorage.setItem('bd_api_key', k); }
+
+// ─── 状態 ───
+let tasks = loadTasks();
+let dragId = null;
+let collapsed = {};
+let aiLoading = false;
+
+// ─── API設定UI ───
+const apiSection  = document.getElementById('api-section');
+const apiToggle   = document.getElementById('api-toggle');
+const apiKeyInput = document.getElementById('api-key-input');
+const statusLabel = document.getElementById('api-status-label');
+
+function refreshApiStatus() {
+  const k = loadKey();
+  statusLabel.textContent = k
+    ? `AI分類: 設定済み (Groq)`
+    : 'AI分類の設定（Groq APIキー・無料）';
+}
+apiKeyInput.value = loadKey();
+refreshApiStatus();
+
+apiToggle.addEventListener('click', () => {
+  apiSection.classList.toggle('open');
+});
+document.getElementById('save-key-btn').addEventListener('click', () => {
+  const v = apiKeyInput.value.trim();
+  saveKey(v);
+  refreshApiStatus();
+  apiSection.classList.remove('open');
+  showToast(v ? 'APIキーを保存しました' : 'APIキーを削除しました');
+});
+
+// ─── トースト ───
+let toastTimer;
+function showToast(msg, isError = false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (isError ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = ''; }, 3000);
+}
+
+// ─── AI分類 ───
+document.getElementById('ai-btn').addEventListener('click', async () => {
+  if (aiLoading) return;
+  const raw = document.getElementById('dump-area').value.trim();
+  if (!raw) return;
+  const apiKey = loadKey();
+  if (!apiKey) {
+    apiSection.classList.add('open');
+    showToast('APIキーを入力してください', true);
+    return;
+  }
+
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) return;
+
+  setAiLoading(true);
+
+  const prompt = `あなたはタスク管理の専門家です。以下のタスクをそれぞれ最も適切なカテゴリに分類してください。
+
+カテゴリの定義:
+- now: 今すぐ・期限あり（放置すると損失・トラブルになる、締め切りが迫っている）
+- do: 進める・決定済み（方向が決まっていてあとは実行するだけ、能動的に動ける）
+- grow: 育てる（長期的に取り組みたい、アイデア段階、じっくり育てるもの）
+- let: 手放す・保留（今はやらない、誰かに任せる、削除してよいかも）
+- unsorted: どれにも当てはまらない・判断できない
+
+タスクリスト:
+${lines.map((l, i) => `${i + 1}. ${l}`).join('\n')}
+
+以下のJSON配列のみを返してください（説明・コードブロック不要）:
+[{"text":"タスク文","lane":"カテゴリID"},...]`;
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    // JSONを抽出（```json...``` も対応）
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('レスポンスのパースに失敗しました');
+    const classified = JSON.parse(jsonMatch[0]);
+
+    const validLanes = new Set(LANE_DEFS.map(d => d.id));
+    classified.forEach(item => {
+      if (!item.text) return;
+      const lane = validLanes.has(item.lane) ? item.lane : 'unsorted';
+      tasks.push({ id: uid(), text: item.text, lane, done: false, memo: '', due: '' });
+    });
+    saveTasks();
+    document.getElementById('dump-area').value = '';
+    render();
+    showToast(`${classified.length}件をAIで分類しました`);
+  } catch (e) {
+    showToast('エラー: ' + e.message, true);
+    console.error(e);
+  } finally {
+    setAiLoading(false);
+  }
+});
+
+function setAiLoading(on) {
+  aiLoading = on;
+  const btn = document.getElementById('ai-btn');
+  const icon = document.getElementById('ai-btn-icon');
+  const label = document.getElementById('ai-btn-label');
+  btn.disabled = on;
+  if (on) {
+    icon.outerHTML = '<span class="spinner" id="ai-btn-icon"></span>';
+    label.textContent = '分類中…';
+  } else {
+    document.getElementById('ai-btn-icon').outerHTML = '<span id="ai-btn-icon">✦</span>';
+    label.textContent = 'AI分類';
+  }
+}
+
+// ─── タスク化（手動） ───
+document.getElementById('convert-btn').addEventListener('click', () => {
+  const raw = document.getElementById('dump-area').value.trim();
+  if (!raw) return;
+  raw.split('\n').map(l => l.trim()).filter(Boolean).forEach(line => {
+    tasks.push({ id: uid(), text: line, lane: 'unsorted', done: false, memo: '', due: '' });
+  });
+  saveTasks();
+  document.getElementById('dump-area').value = '';
+  render();
+});
+
+document.getElementById('clear-dump').addEventListener('click', () => {
+  document.getElementById('dump-area').value = '';
+});
+
+// ─── 期限ユーティリティ ───
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+function dueCls(due) {
+  if (!due) return '';
+  const t = today();
+  if (due < t) return 'due-overdue';
+  if (due === t) return 'due-today';
+  const diff = (new Date(due) - new Date(t)) / 86400000;
+  if (diff <= 2) return 'due-soon';
+  return '';
+}
+function fmtDue(due) {
+  if (!due) return '';
+  const [y, m, d] = due.split('-');
+  return `${parseInt(m)}/${parseInt(d)}`;
+}
+
+// ─── レンダリング ───
+function render() {
+  const container = document.getElementById('lanes-container');
+  container.innerHTML = '';
+  LANE_DEFS.forEach(def => {
+    const laneTasks = tasks.filter(t => t.lane === def.id);
+    const isCollapsed = collapsed[def.id] || false;
+
+    const lane = document.createElement('div');
+    lane.className = 'lane' + (isCollapsed ? ' collapsed' : '');
+    lane.dataset.lane = def.id;
+
+    const header = document.createElement('div');
+    header.className = 'lane-header';
+    header.innerHTML = `
+      <span class="lane-dot"></span>
+      <span class="lane-title">${def.label}</span>
+      <span class="lane-count">${laneTasks.length}</span>
+      <span class="lane-toggle">▾</span>`;
+    header.addEventListener('click', () => {
+      collapsed[def.id] = !collapsed[def.id];
+      render();
+    });
+
+    const body = document.createElement('div');
+    body.className = 'lane-body';
+    body.dataset.lane = def.id;
+    body.addEventListener('dragover', e => { e.preventDefault(); body.classList.add('drag-over'); });
+    body.addEventListener('dragleave', () => body.classList.remove('drag-over'));
+    body.addEventListener('drop', e => {
+      e.preventDefault(); body.classList.remove('drag-over');
+      if (dragId) moveTask(dragId, def.id);
+    });
+
+    if (laneTasks.length === 0) {
+      body.innerHTML = `<p class="empty-hint">ここに移動</p>`;
+    } else {
+      laneTasks.forEach(t => body.appendChild(makeCard(t)));
+    }
+
+    lane.appendChild(header);
+    lane.appendChild(body);
+    container.appendChild(lane);
+  });
+}
+
+function makeCard(task) {
+  const card = document.createElement('div');
+  card.className = 'card' + (task.done ? ' done' : '');
+  card.draggable = true;
+  card.dataset.id = task.id;
+
+  card.addEventListener('dragstart', () => {
+    dragId = task.id;
+    setTimeout(() => card.classList.add('dragging'), 0);
+  });
+  card.addEventListener('dragend', () => {
+    dragId = null;
+    card.classList.remove('dragging');
+  });
+
+  // 上段：チェック＋テキスト＋削除
+  const top = document.createElement('div');
+  top.className = 'card-top';
+
+  const chk = document.createElement('input');
+  chk.type = 'checkbox';
+  chk.className = 'card-check';
+  chk.checked = task.done;
+  chk.addEventListener('change', () => {
+    task.done = chk.checked;
+    saveTasks();
+    card.classList.toggle('done', task.done);
+  });
+
+  const txt = document.createElement('span');
+  txt.className = 'card-text';
+  txt.textContent = task.text;
+
+  const del = document.createElement('button');
+  del.className = 'card-del';
+  del.textContent = '×';
+  del.title = '削除';
+  del.addEventListener('click', () => {
+    tasks = tasks.filter(t => t.id !== task.id);
+    saveTasks();
+    render();
+  });
+
+  top.appendChild(chk);
+  top.appendChild(txt);
+  top.appendChild(del);
+
+  // 期限行
+  const dueRow = document.createElement('div');
+  dueRow.className = 'card-due-row';
+
+  const dueLabel = document.createElement('span');
+  dueLabel.className = 'due-label';
+  dueLabel.textContent = '期限';
+
+  // 非表示のdate input（カレンダーを開くためだけに使う）
+  const dueInput = document.createElement('input');
+  dueInput.type = 'date';
+  dueInput.className = 'card-due';
+  dueInput.value = task.due || '';
+
+  // カレンダーボタン（クリックでピッカーを開く）
+  const dueBtn = document.createElement('button');
+  dueBtn.className = 'due-btn ' + dueCls(task.due || '');
+  dueBtn.innerHTML = task.due ? `📅 ${fmtDue(task.due)}` : '📅 期限を設定';
+  dueBtn.addEventListener('mousedown', e => e.stopPropagation());
+  dueBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    try {
+      dueInput.showPicker();
+    } catch {
+      dueInput.click();
+    }
+  });
+
+  dueInput.addEventListener('change', () => {
+    task.due = dueInput.value;
+    saveTasks();
+    dueBtn.className = 'due-btn ' + dueCls(task.due);
+    dueBtn.innerHTML = task.due ? `📅 ${fmtDue(task.due)}` : '📅 期限を設定';
+    clearBtn.style.display = task.due ? '' : 'none';
+  });
+
+  const clearBtn = document.createElement('button');
+  clearBtn.className = 'due-clear';
+  clearBtn.textContent = '×';
+  clearBtn.title = '期限を削除';
+  clearBtn.style.display = task.due ? '' : 'none';
+  clearBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    task.due = '';
+    dueInput.value = '';
+    dueBtn.className = 'due-btn';
+    dueBtn.innerHTML = '📅 期限を設定';
+    clearBtn.style.display = 'none';
+    saveTasks();
+  });
+
+  dueRow.appendChild(dueLabel);
+  dueRow.appendChild(dueInput);
+  dueRow.appendChild(dueBtn);
+  dueRow.appendChild(clearBtn);
+
+  // メモ
+  const memo = document.createElement('textarea');
+  memo.className = 'card-memo';
+  memo.placeholder = 'メモ…';
+  memo.value = task.memo || '';
+  memo.rows = 1;
+  memo.addEventListener('input', () => {
+    task.memo = memo.value;
+    saveTasks();
+    autoResize(memo);
+  });
+  memo.addEventListener('mousedown', e => e.stopPropagation());
+  setTimeout(() => autoResize(memo), 0);
+
+  // 移動ボタン
+  const moveRow = document.createElement('div');
+  moveRow.className = 'card-move';
+  LANE_DEFS.filter(d => d.id !== task.lane).forEach(d => {
+    const btn = document.createElement('button');
+    btn.className = 'move-btn';
+    btn.textContent = '→ ' + d.label;
+    btn.addEventListener('click', () => moveTask(task.id, d.id));
+    moveRow.appendChild(btn);
+  });
+
+  card.appendChild(top);
+  card.appendChild(dueRow);
+  card.appendChild(memo);
+  card.appendChild(moveRow);
+  return card;
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+function moveTask(taskId, laneId) {
+  const t = tasks.find(t => t.id === taskId);
+  if (!t) return;
+  t.lane = laneId;
+  saveTasks();
+  render();
+}
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+render();
+</script>
+</body>
+</html>
