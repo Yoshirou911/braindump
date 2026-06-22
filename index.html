@@ -473,6 +473,134 @@
   }
   .btn-tool:hover { border-color: #999; color: var(--text); }
   .btn-tool.active { background: var(--text); color: #fff; border-color: var(--text); }
+
+  /* ─── 検索バー ─── */
+  .search-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+  #search-input {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: .85rem;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    font-family: inherit;
+  }
+  #search-input:focus { border-color: #999; }
+  #search-clear { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; padding: 0 4px; }
+  #search-clear:hover { color: var(--text); }
+
+  /* ─── カード色タグ ─── */
+  .card { border-left: 3px solid transparent; }
+  .card[data-color="red"]    { border-left-color: #e05252; }
+  .card[data-color="orange"] { border-left-color: #e08c30; }
+  .card[data-color="yellow"] { border-left-color: #d4a017; }
+  .card[data-color="green"]  { border-left-color: #3aaa60; }
+  .card[data-color="blue"]   { border-left-color: #4a9eda; }
+  .card[data-color="purple"] { border-left-color: #5b4cdb; }
+  .card-color-row { display: none; gap: 5px; margin-top: 7px; align-items: center; }
+  .card:hover .card-color-row { display: flex; }
+  .color-label { font-size: .68rem; color: var(--text-muted); flex-shrink: 0; }
+  .color-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform .1s;
+    flex-shrink: 0;
+  }
+  .color-dot:hover { transform: scale(1.25); }
+  .color-dot.selected { border-color: #333; }
+  .color-dot[data-c=""]       { background: var(--border); }
+  .color-dot[data-c="red"]    { background: #e05252; }
+  .color-dot[data-c="orange"] { background: #e08c30; }
+  .color-dot[data-c="yellow"] { background: #d4a017; }
+  .color-dot[data-c="green"]  { background: #3aaa60; }
+  .color-dot[data-c="blue"]   { background: #4a9eda; }
+  .color-dot[data-c="purple"] { background: #5b4cdb; }
+
+  /* ─── 週次レビューモーダル ─── */
+  .review-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .review-box {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 28px 24px;
+    max-width: 420px; width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  }
+  .review-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .review-progress { font-size: .75rem; color: var(--text-muted); }
+  .review-lane-badge {
+    font-size: .72rem; padding: 2px 8px; border-radius: 20px;
+    background: var(--bg); color: var(--text-muted); border: 1px solid var(--border);
+    margin-left: auto;
+  }
+  .review-text { font-size: 1.1rem; font-weight: 600; line-height: 1.5; margin-bottom: 24px; word-break: break-word; }
+  .review-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .review-actions button { flex: 1; }
+  .review-skip-row { margin-top: 12px; text-align: center; }
+  .review-skip-row button { background: none; border: none; font-size: .78rem; color: var(--text-muted); cursor: pointer; }
+  .review-skip-row button:hover { color: var(--text); }
+  .review-done { text-align: center; padding: 12px 0 20px; }
+  .review-done-icon { font-size: 2.5rem; margin-bottom: 10px; }
+  .review-done-text { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+  .review-done-sub { font-size: .82rem; color: var(--text-muted); margin-bottom: 20px; }
+
+  /* ─── 勉強タイマー ─── */
+  .study-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-top: 14px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .study-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; cursor: pointer; user-select: none;
+    border-bottom: 1px solid transparent;
+  }
+  .study-section.open .study-header { border-bottom-color: var(--border); }
+  .study-title { font-size: .9rem; font-weight: 600; flex: 1; }
+  .study-toggle { font-size: .7rem; color: var(--text-muted); transition: transform .2s; }
+  .study-section.open .study-toggle { transform: rotate(180deg); }
+  .study-body { display: none; padding: 16px; }
+  .study-section.open .study-body { display: block; }
+  .timer-display {
+    font-size: 2.8rem; font-weight: 700; text-align: center;
+    letter-spacing: .04em; font-variant-numeric: tabular-nums;
+    margin-bottom: 14px; color: var(--text);
+  }
+  .timer-display.running { color: #3aaa60; }
+  .timer-controls { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  .timer-record-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .timer-subject {
+    flex: 1; border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: .85rem; font-family: inherit;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  .timer-subject:focus { border-color: #999; }
+  .study-total { font-size: .78rem; color: var(--text-muted); text-align: right; margin-bottom: 10px; }
+  .study-log-entries { display: flex; flex-direction: column; gap: 6px; }
+  .study-log-entry {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; background: var(--bg); font-size: .82rem;
+  }
+  .study-log-duration { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 56px; }
+  .study-log-subject { flex: 1; color: var(--text-muted); }
+  .study-log-date { font-size: .7rem; color: var(--text-muted); }
+  .study-log-del {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: .85rem; opacity: 0; transition: opacity .15s;
+  }
+  .study-log-entry:hover .study-log-del { opacity: 1; }
 </style>
 </head>
 <body>
@@ -485,7 +613,9 @@
 <!-- ツールバー -->
 <div class="toolbar">
   <button class="btn-tool" id="hide-done-btn">完了を隠す</button>
+  <button class="btn-tool" id="clear-done-btn">完了を全削除</button>
   <button class="btn-tool" id="sort-btn">並び替え: デフォルト</button>
+  <button class="btn-tool" id="review-btn">週次レビュー</button>
   <button class="btn-tool" id="export-btn">↓ エクスポート</button>
   <label class="btn-tool">↑ インポート<input type="file" id="import-input" accept=".json" style="display:none"></label>
 </div>
@@ -523,6 +653,12 @@
   </div>
 </div>
 
+<!-- 検索バー -->
+<div class="search-bar">
+  <input type="text" id="search-input" placeholder="タスクを検索…">
+  <button id="search-clear" title="クリア">×</button>
+</div>
+
 <!-- レーン -->
 <div class="lanes" id="lanes-container"></div>
 
@@ -543,6 +679,35 @@
   </div>
 </div>
 
+<!-- 週次レビューモーダル -->
+<div class="review-overlay" id="review-modal" style="display:none">
+  <div class="review-box">
+    <div id="review-content"></div>
+  </div>
+</div>
+
+<!-- 勉強タイマー -->
+<div class="study-section" id="study-section">
+  <div class="study-header" id="study-header">
+    <span>⏱</span>
+    <span class="study-title">勉強タイマー</span>
+    <span class="study-toggle">▾</span>
+  </div>
+  <div class="study-body">
+    <div class="timer-display" id="timer-display">00:00:00</div>
+    <div class="timer-controls">
+      <button class="btn-primary" id="timer-start">スタート</button>
+      <button class="btn-ghost" id="timer-reset">リセット</button>
+    </div>
+    <div class="timer-record-row">
+      <input type="text" class="timer-subject" id="timer-subject" placeholder="科目・内容（任意）">
+      <button class="btn-primary" id="timer-save" disabled>記録する</button>
+    </div>
+    <div class="study-total" id="study-total">今日の合計: 00:00:00</div>
+    <div class="study-log-entries" id="study-log-entries"></div>
+  </div>
+</div>
+
 <!-- トースト -->
 <div id="toast"></div>
 
@@ -556,18 +721,22 @@ const LANE_DEFS = [
 ];
 
 // ─── ストレージ ───
-function loadTasks() {
-  try { return JSON.parse(localStorage.getItem('bd_tasks') || '[]'); } catch { return []; }
-}
-function saveTasks() { localStorage.setItem('bd_tasks', JSON.stringify(tasks)); }
-function loadKey()   { return localStorage.getItem('bd_api_key') || ''; }
-function saveKey(k)  { localStorage.setItem('bd_api_key', k); }
+function loadTasks()     { try { return JSON.parse(localStorage.getItem('bd_tasks')     || '[]'); } catch { return []; } }
+function saveTasks()     { localStorage.setItem('bd_tasks',     JSON.stringify(tasks)); }
+function loadKey()       { return localStorage.getItem('bd_api_key') || ''; }
+function saveKey(k)      { localStorage.setItem('bd_api_key', k); }
+function loadCollapsed() { try { return JSON.parse(localStorage.getItem('bd_collapsed') || '{}'); } catch { return {}; } }
+function saveCollapsed() { localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
+function loadStudyLogs() { try { return JSON.parse(localStorage.getItem('bd_study_logs') || '[]'); } catch { return []; } }
+function saveStudyLogs() { localStorage.setItem('bd_study_logs', JSON.stringify(studyLogs)); }
 
 // ─── 状態 ───
 let tasks = loadTasks();
 let dragId = null;
-let collapsed = {};
+let collapsed = loadCollapsed();
 let aiLoading = false;
+let searchQuery = '';
+let studyLogs = loadStudyLogs();
 let hideDone = false;
 let sortMode = '';
 const SORT_MODES  = ['', 'name', 'due'];
@@ -753,6 +922,12 @@ function render() {
         return a.due.localeCompare(b.due);
       });
     }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      laneTasks = laneTasks.filter(t =>
+        t.text.toLowerCase().includes(q) || (t.memo || '').toLowerCase().includes(q)
+      );
+    }
     const isCollapsed = collapsed[def.id] || false;
 
     const lane = document.createElement('div');
@@ -768,6 +943,7 @@ function render() {
       <span class="lane-toggle">▾</span>`;
     header.addEventListener('click', () => {
       collapsed[def.id] = !collapsed[def.id];
+      saveCollapsed();
       render();
     });
 
@@ -791,6 +967,7 @@ function render() {
     lane.appendChild(body);
     container.appendChild(lane);
   });
+  updateFavicon();
 }
 
 function makeCard(task) {
@@ -798,6 +975,7 @@ function makeCard(task) {
   card.className = 'card' + (task.done ? ' done' : '');
   card.draggable = true;
   card.dataset.id = task.id;
+  card.dataset.color = task.color || '';
 
   card.addEventListener('dragstart', () => {
     dragId = task.id;
@@ -910,6 +1088,29 @@ function makeCard(task) {
   memo.addEventListener('mousedown', e => e.stopPropagation());
   setTimeout(() => autoResize(memo), 0);
 
+  // 色タグ
+  const colorRow = document.createElement('div');
+  colorRow.className = 'card-color-row';
+  colorRow.addEventListener('mousedown', e => e.stopPropagation());
+  const colorLabel = document.createElement('span');
+  colorLabel.className = 'color-label';
+  colorLabel.textContent = '色:';
+  colorRow.appendChild(colorLabel);
+  ['', 'red', 'orange', 'yellow', 'green', 'blue', 'purple'].forEach(c => {
+    const dot = document.createElement('span');
+    dot.className = 'color-dot' + (( task.color || '') === c ? ' selected' : '');
+    dot.dataset.c = c;
+    dot.title = c || 'なし';
+    dot.addEventListener('click', e => {
+      e.stopPropagation();
+      task.color = c;
+      saveTasks();
+      card.dataset.color = c;
+      colorRow.querySelectorAll('.color-dot').forEach(d => d.classList.toggle('selected', d.dataset.c === c));
+    });
+    colorRow.appendChild(dot);
+  });
+
   // 移動ボタン
   const moveRow = document.createElement('div');
   moveRow.className = 'card-move';
@@ -924,6 +1125,7 @@ function makeCard(task) {
   card.appendChild(top);
   card.appendChild(dueRow);
   card.appendChild(memo);
+  card.appendChild(colorRow);
   card.appendChild(moveRow);
   return card;
 }
@@ -1040,6 +1242,224 @@ document.getElementById('import-input').addEventListener('change', e => {
   reader.readAsText(file);
   e.target.value = '';
 });
+
+// ─── 完了を全削除 ───
+document.getElementById('clear-done-btn').addEventListener('click', () => {
+  const count = tasks.filter(t => t.done).length;
+  if (count === 0) { showToast('完了タスクはありません'); return; }
+  tasks = tasks.filter(t => !t.done);
+  saveTasks();
+  render();
+  showToast(`完了タスクを${count}件削除しました`);
+});
+
+// ─── 検索 ───
+document.getElementById('search-input').addEventListener('input', e => {
+  searchQuery = e.target.value;
+  render();
+});
+document.getElementById('search-clear').addEventListener('click', () => {
+  searchQuery = '';
+  document.getElementById('search-input').value = '';
+  render();
+});
+
+// ─── ブラウザ通知（期限当日・期限切れ） ───
+function checkNotifications() {
+  if (!('Notification' in window)) return;
+  Notification.requestPermission().then(perm => {
+    if (perm !== 'granted') return;
+    const t = today();
+    tasks.filter(task => !task.done && task.due && task.due <= t).forEach(task => {
+      new Notification('ブレインダンプ', {
+        body: (task.due < t ? '期限切れ: ' : '今日が期限: ') + task.text,
+      });
+    });
+  });
+}
+checkNotifications();
+
+// ─── faviconバッジ ───
+function updateFavicon() {
+  const count = tasks.filter(t => !t.done).length;
+  const canvas = document.createElement('canvas');
+  canvas.width = 32; canvas.height = 32;
+  const ctx = canvas.getContext('2d');
+  ctx.font = '26px serif';
+  ctx.fillText('📝', 1, 26);
+  if (count > 0) {
+    ctx.fillStyle = '#e05252';
+    ctx.beginPath(); ctx.arc(25, 7, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(count > 99 ? '99' : String(count), 25, 7);
+  }
+  let link = document.querySelector("link[rel~='icon']");
+  if (!link) { link = document.createElement('link'); link.rel = 'icon'; document.head.appendChild(link); }
+  link.href = canvas.toDataURL();
+}
+
+// ─── 週次レビュー ───
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+let reviewQueue = [];
+let reviewIdx = 0;
+
+document.getElementById('review-btn').addEventListener('click', startReview);
+
+function startReview() {
+  reviewQueue = tasks.filter(t => (t.lane === 'grow' || t.lane === 'let') && !t.done);
+  if (reviewQueue.length === 0) { showToast('育てる・手放すレーンにタスクがありません'); return; }
+  reviewIdx = 0;
+  document.getElementById('review-modal').style.display = 'flex';
+  renderReviewCard();
+}
+
+function renderReviewCard() {
+  const content = document.getElementById('review-content');
+  if (reviewIdx >= reviewQueue.length) {
+    content.innerHTML = `
+      <div class="review-done">
+        <div class="review-done-icon">✅</div>
+        <div class="review-done-text">レビュー完了！</div>
+        <div class="review-done-sub">${reviewQueue.length}件を見直しました</div>
+      </div>
+      <div style="text-align:center">
+        <button class="btn-primary" id="review-close-btn">閉じる</button>
+      </div>`;
+    document.getElementById('review-close-btn').addEventListener('click', closeReview);
+    render();
+    return;
+  }
+  const task = reviewQueue[reviewIdx];
+  const laneLabel = LANE_DEFS.find(d => d.id === task.lane)?.label || task.lane;
+  content.innerHTML = `
+    <div class="review-meta">
+      <span class="review-progress">${reviewIdx + 1} / ${reviewQueue.length}</span>
+      <span class="review-lane-badge">${escHtml(laneLabel)}</span>
+    </div>
+    <div class="review-text">${escHtml(task.text)}</div>
+    <div class="review-actions">
+      <button class="btn-primary" id="rv-keep">続ける</button>
+      <button class="btn-ghost" id="rv-now">今すぐやる</button>
+      <button class="btn-ghost" id="rv-let">手放す</button>
+    </div>
+    <div class="review-skip-row"><button id="rv-skip">スキップ →</button></div>`;
+  document.getElementById('rv-keep').addEventListener('click', () => reviewAction('keep'));
+  document.getElementById('rv-now').addEventListener('click',  () => reviewAction('now'));
+  document.getElementById('rv-let').addEventListener('click',  () => reviewAction('let'));
+  document.getElementById('rv-skip').addEventListener('click', () => reviewAction('skip'));
+}
+
+function reviewAction(action) {
+  const task = reviewQueue[reviewIdx];
+  if (action === 'now') moveTask(task.id, 'now');
+  else if (action === 'let') moveTask(task.id, 'let');
+  reviewIdx++;
+  renderReviewCard();
+}
+
+function closeReview() {
+  document.getElementById('review-modal').style.display = 'none';
+}
+
+// ─── 勉強タイマー ───
+document.getElementById('study-header').addEventListener('click', () => {
+  document.getElementById('study-section').classList.toggle('open');
+});
+
+let studyRunning = false;
+let studyStart = null;
+let studyElapsed = 0;
+let studyInterval = null;
+
+function fmtDuration(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
+}
+
+function updateTimerDisplay() {
+  const elapsed = studyElapsed + (studyRunning ? Date.now() - studyStart : 0);
+  document.getElementById('timer-display').textContent = fmtDuration(elapsed);
+}
+
+document.getElementById('timer-start').addEventListener('click', () => {
+  if (studyRunning) {
+    studyElapsed += Date.now() - studyStart;
+    studyStart = null;
+    studyRunning = false;
+    clearInterval(studyInterval); studyInterval = null;
+    document.getElementById('timer-display').classList.remove('running');
+    document.getElementById('timer-start').textContent = 'スタート';
+    document.getElementById('timer-save').disabled = studyElapsed === 0;
+  } else {
+    studyStart = Date.now();
+    studyRunning = true;
+    studyInterval = setInterval(updateTimerDisplay, 500);
+    document.getElementById('timer-display').classList.add('running');
+    document.getElementById('timer-start').textContent = 'ストップ';
+    document.getElementById('timer-save').disabled = true;
+  }
+  updateTimerDisplay();
+});
+
+document.getElementById('timer-reset').addEventListener('click', () => {
+  if (studyRunning) { clearInterval(studyInterval); studyInterval = null; studyRunning = false; }
+  studyStart = null; studyElapsed = 0;
+  document.getElementById('timer-display').textContent = '00:00:00';
+  document.getElementById('timer-display').classList.remove('running');
+  document.getElementById('timer-start').textContent = 'スタート';
+  document.getElementById('timer-save').disabled = true;
+});
+
+document.getElementById('timer-save').addEventListener('click', () => {
+  if (studyElapsed === 0) return;
+  const subject = document.getElementById('timer-subject').value.trim();
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+  studyLogs.unshift({ id: uid(), date: dateStr, duration: studyElapsed, subject });
+  saveStudyLogs();
+  document.getElementById('timer-subject').value = '';
+  // reset
+  studyElapsed = 0;
+  document.getElementById('timer-display').textContent = '00:00:00';
+  document.getElementById('timer-start').textContent = 'スタート';
+  document.getElementById('timer-save').disabled = true;
+  renderStudyLogs();
+  showToast('勉強時間を記録しました');
+});
+
+function renderStudyLogs() {
+  const container = document.getElementById('study-log-entries');
+  const totalEl   = document.getElementById('study-total');
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+  const todayMs = studyLogs.filter(l => l.date === todayStr).reduce((s, l) => s + l.duration, 0);
+  totalEl.textContent = `今日の合計: ${fmtDuration(todayMs)}`;
+  container.innerHTML = '';
+  studyLogs.forEach(entry => {
+    const el = document.createElement('div');
+    el.className = 'study-log-entry';
+    el.innerHTML = `
+      <span class="study-log-duration">${fmtDuration(entry.duration)}</span>
+      <span class="study-log-subject">${escHtml(entry.subject || '—')}</span>
+      <span class="study-log-date">${entry.date}</span>
+      <button class="study-log-del" title="削除">×</button>`;
+    el.querySelector('.study-log-del').addEventListener('click', () => {
+      studyLogs = studyLogs.filter(l => l.id !== entry.id);
+      saveStudyLogs();
+      renderStudyLogs();
+    });
+    container.appendChild(el);
+  });
+}
+
+renderStudyLogs();
 </script>
 </body>
 </html>
