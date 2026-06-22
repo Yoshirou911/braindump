@@ -449,6 +449,30 @@
     body { padding: 32px 32px 64px; max-width: 720px; margin: 0 auto; }
     h1 { font-size: 1.25rem; }
   }
+
+  /* ─── ツールバー ─── */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .btn-tool {
+    font-size: .78rem;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color .1s, color .1s;
+    font-family: inherit;
+    line-height: 1.4;
+  }
+  .btn-tool:hover { border-color: #999; color: var(--text); }
+  .btn-tool.active { background: var(--text); color: #fff; border-color: var(--text); }
 </style>
 </head>
 <body>
@@ -457,6 +481,14 @@
   <h1>ブレインダンプ</h1>
 </div>
 <p class="subtitle">頭の中を全部書き出して、整理して、空にする。</p>
+
+<!-- ツールバー -->
+<div class="toolbar">
+  <button class="btn-tool" id="hide-done-btn">完了を隠す</button>
+  <button class="btn-tool" id="sort-btn">並び替え: デフォルト</button>
+  <button class="btn-tool" id="export-btn">↓ エクスポート</button>
+  <label class="btn-tool">↑ インポート<input type="file" id="import-input" accept=".json" style="display:none"></label>
+</div>
 
 <!-- APIキー設定 -->
 <div class="api-section" id="api-section">
@@ -536,6 +568,11 @@ let tasks = loadTasks();
 let dragId = null;
 let collapsed = {};
 let aiLoading = false;
+let hideDone = false;
+let sortMode = '';
+const SORT_MODES  = ['', 'name', 'due'];
+const SORT_LABELS = ['並び替え: デフォルト', '並び替え: 名前順', '並び替え: 期限順'];
+let sortModeIdx = 0;
 
 // ─── API設定UI ───
 const apiSection  = document.getElementById('api-section');
@@ -704,7 +741,18 @@ function render() {
   const container = document.getElementById('lanes-container');
   container.innerHTML = '';
   LANE_DEFS.forEach(def => {
-    const laneTasks = tasks.filter(t => t.lane === def.id);
+    let laneTasks = tasks.filter(t => t.lane === def.id);
+    if (hideDone) laneTasks = laneTasks.filter(t => !t.done);
+    if (sortMode === 'name') {
+      laneTasks = [...laneTasks].sort((a, b) => a.text.localeCompare(b.text, 'ja'));
+    } else if (sortMode === 'due') {
+      laneTasks = [...laneTasks].sort((a, b) => {
+        if (!a.due && !b.due) return 0;
+        if (!a.due) return 1;
+        if (!b.due) return -1;
+        return a.due.localeCompare(b.due);
+      });
+    }
     const isCollapsed = collapsed[def.id] || false;
 
     const lane = document.createElement('div');
@@ -945,6 +993,53 @@ function renderLogs() {
 }
 
 renderLogs();
+
+// ─── ツールバー ───
+document.getElementById('hide-done-btn').addEventListener('click', () => {
+  hideDone = !hideDone;
+  document.getElementById('hide-done-btn').classList.toggle('active', hideDone);
+  render();
+});
+
+document.getElementById('sort-btn').addEventListener('click', () => {
+  sortModeIdx = (sortModeIdx + 1) % SORT_MODES.length;
+  sortMode = SORT_MODES[sortModeIdx];
+  const btn = document.getElementById('sort-btn');
+  btn.textContent = SORT_LABELS[sortModeIdx];
+  btn.classList.toggle('active', sortModeIdx !== 0);
+  render();
+});
+
+document.getElementById('export-btn').addEventListener('click', () => {
+  const data = { tasks, logs };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `braindump_${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('エクスポートしました');
+});
+
+document.getElementById('import-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (Array.isArray(data.tasks)) { tasks = data.tasks; saveTasks(); }
+      if (Array.isArray(data.logs))  { logs  = data.logs;  saveLogs();  }
+      render();
+      renderLogs();
+      showToast('インポートしました');
+    } catch {
+      showToast('JSONの読み込みに失敗しました', true);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
 </script>
 </body>
 </html>
