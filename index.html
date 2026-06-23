@@ -622,6 +622,95 @@
   .sync-dot.syncing { background: #d4a017; animation: pulse .8s ease-in-out infinite; }
   .sync-dot.synced  { background: #3aaa60; }
   @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+
+  /* ─── 教材管理 ─── */
+  .timer-material-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .timer-material-select {
+    flex: 1; border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: .85rem; font-family: inherit;
+    background: var(--bg); color: var(--text); outline: none; cursor: pointer;
+  }
+  .timer-material-select:focus { border-color: #999; }
+
+  .material-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex; align-items: flex-start; justify-content: center;
+    z-index: 120; padding: 24px 16px;
+    overflow-y: auto;
+  }
+  .material-box {
+    background: var(--surface); border-radius: 12px; padding: 20px;
+    max-width: 480px; width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,.25); margin: auto;
+  }
+  .material-modal-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+  }
+  .material-modal-title { font-size: 1rem; font-weight: 700; }
+  .material-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); line-height: 1; }
+  .material-close:hover { color: var(--text); }
+  .material-section-label { font-size: .72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .material-search-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .material-search-input {
+    flex: 1; border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: .85rem; font-family: inherit;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  .material-search-input:focus { border-color: #999; }
+  .material-results { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; max-height: 260px; overflow-y: auto; }
+  .material-result-card {
+    display: flex; align-items: center; gap: 10px;
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; background: var(--bg);
+  }
+  .material-thumb {
+    width: 36px; height: 50px; object-fit: cover; border-radius: 3px;
+    background: var(--border); flex-shrink: 0;
+  }
+  .material-thumb-ph {
+    width: 36px; height: 50px; background: var(--border); border-radius: 3px;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; color: var(--text-muted);
+  }
+  .material-info { flex: 1; min-width: 0; }
+  .material-title { font-size: .83rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .material-sub { font-size: .7rem; color: var(--text-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .material-add-btn {
+    background: var(--text); color: #fff; border: none;
+    padding: 4px 10px; border-radius: 4px; font-size: .75rem; cursor: pointer; flex-shrink: 0;
+  }
+  .material-add-btn:hover { opacity: .8; }
+  .material-add-btn.added { background: #3aaa60; cursor: default; }
+  .material-divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .material-custom-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  .material-custom-input {
+    flex: 1; border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: .85rem; font-family: inherit;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  .material-custom-input:focus { border-color: #999; }
+  .my-material-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+  .my-material-item {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; background: var(--bg);
+  }
+  .my-thumb { width: 26px; height: 36px; object-fit: cover; border-radius: 2px; flex-shrink: 0; }
+  .my-thumb-ph {
+    width: 26px; height: 36px; background: var(--border); border-radius: 2px;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: .85rem;
+  }
+  .my-material-info { flex: 1; min-width: 0; }
+  .my-material-title { font-size: .82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .my-material-sub { font-size: .7rem; color: var(--text-muted); }
+  .my-material-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: .9rem; opacity: 0; transition: opacity .15s; }
+  .my-material-item:hover .my-material-del { opacity: 1; }
+  .material-loading { text-align: center; font-size: .82rem; color: var(--text-muted); padding: 12px 0; }
+  .material-empty { text-align: center; font-size: .78rem; color: var(--text-muted); padding: 10px 0; }
+  .study-log-material { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
+  .study-log-mat-thumb { width: 14px; height: 20px; object-fit: cover; border-radius: 1px; flex-shrink: 0; }
+  .study-log-mat-name { font-size: .7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 </head>
 <body>
@@ -710,6 +799,31 @@
   </div>
 </div>
 
+<!-- 教材管理モーダル -->
+<div class="material-overlay" id="material-modal" style="display:none">
+  <div class="material-box">
+    <div class="material-modal-header">
+      <span class="material-modal-title">📚 教材管理</span>
+      <button class="material-close" id="material-close">×</button>
+    </div>
+    <p class="material-section-label">書籍を検索して追加</p>
+    <div class="material-search-row">
+      <input type="text" class="material-search-input" id="material-search-input" placeholder="書名・著者・ISBN で検索…">
+      <button class="btn-primary" id="material-search-btn">検索</button>
+    </div>
+    <div class="material-results" id="material-results"></div>
+    <div class="material-divider"></div>
+    <p class="material-section-label">独自の教材を追加</p>
+    <div class="material-custom-row">
+      <input type="text" class="material-custom-input" id="material-custom-input" placeholder="教材名・講座名など…">
+      <button class="btn-primary" id="material-custom-btn">追加</button>
+    </div>
+    <div class="material-divider"></div>
+    <p class="material-section-label">マイ教材</p>
+    <div class="my-material-list" id="my-material-list"></div>
+  </div>
+</div>
+
 <!-- 勉強タイマー -->
 <div class="study-section" id="study-section">
   <div class="study-header" id="study-header">
@@ -722,6 +836,12 @@
     <div class="timer-controls">
       <button class="btn-primary" id="timer-start">スタート</button>
       <button class="btn-ghost" id="timer-reset">リセット</button>
+    </div>
+    <div class="timer-material-row">
+      <select id="timer-material" class="timer-material-select">
+        <option value="">教材を選択（任意）</option>
+      </select>
+      <button class="btn-ghost" id="material-manage-btn" style="font-size:.78rem;padding:5px 10px;white-space:nowrap">教材管理</button>
     </div>
     <div class="timer-manual-row">
       <span>記録する時間:</span>
@@ -771,7 +891,7 @@ async function syncToFirestore() {
   setSyncStatus('syncing');
   try {
     await fbDb.doc(`braindump/${currentUser.uid}`).set(
-      { tasks, logs, studyLogs, collapsed, updatedAt: Date.now() }
+      { tasks, logs, studyLogs, collapsed, materials, updatedAt: Date.now() }
     );
     setSyncStatus('synced');
   } catch(e) {
@@ -788,7 +908,8 @@ async function loadFromFirestore(uid) {
       const d = snap.data();
       if (Array.isArray(d.tasks))     { tasks     = d.tasks;     localStorage.setItem('bd_tasks',      JSON.stringify(tasks)); }
       if (Array.isArray(d.logs))      { logs       = d.logs;      localStorage.setItem('bd_logs',       JSON.stringify(logs)); }
-      if (Array.isArray(d.studyLogs)) { studyLogs  = d.studyLogs; localStorage.setItem('bd_study_logs', JSON.stringify(studyLogs)); }
+      if (Array.isArray(d.studyLogs))  { studyLogs  = d.studyLogs;  localStorage.setItem('bd_study_logs',  JSON.stringify(studyLogs)); }
+      if (Array.isArray(d.materials))  { materials  = d.materials;  localStorage.setItem('bd_materials',   JSON.stringify(materials)); }
       if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
     }
     render(); renderLogs(); renderStudyLogs();
@@ -843,8 +964,10 @@ function loadKey()       { return localStorage.getItem('bd_api_key') || ''; }
 function saveKey(k)      { localStorage.setItem('bd_api_key', k); }
 function loadCollapsed() { try { return JSON.parse(localStorage.getItem('bd_collapsed') || '{}'); } catch { return {}; } }
 function saveCollapsed() { localStorage.setItem('bd_collapsed',   JSON.stringify(collapsed)); scheduleSync(); }
-function loadStudyLogs() { try { return JSON.parse(localStorage.getItem('bd_study_logs') || '[]'); } catch { return []; } }
-function saveStudyLogs() { localStorage.setItem('bd_study_logs',  JSON.stringify(studyLogs)); scheduleSync(); }
+function loadStudyLogs()  { try { return JSON.parse(localStorage.getItem('bd_study_logs')  || '[]'); } catch { return []; } }
+function saveStudyLogs()  { localStorage.setItem('bd_study_logs',  JSON.stringify(studyLogs));  scheduleSync(); }
+function loadMaterials()  { try { return JSON.parse(localStorage.getItem('bd_materials')   || '[]'); } catch { return []; } }
+function saveMaterials()  { localStorage.setItem('bd_materials',   JSON.stringify(materials));  scheduleSync(); }
 
 // ─── 状態 ───
 let tasks = loadTasks();
@@ -853,6 +976,7 @@ let collapsed = loadCollapsed();
 let aiLoading = false;
 let searchQuery = '';
 let studyLogs = loadStudyLogs();
+let materials = loadMaterials();
 let hideDone = false;
 let sortMode = '';
 const SORT_MODES  = ['', 'name', 'due'];
@@ -1557,10 +1681,11 @@ document.getElementById('timer-reset').addEventListener('click', () => {
 document.getElementById('timer-save').addEventListener('click', () => {
   const duration = getManualMs();
   if (duration === 0) return;
-  const subject = document.getElementById('timer-subject').value.trim();
+  const subject    = document.getElementById('timer-subject').value.trim();
+  const materialId = document.getElementById('timer-material').value;
   const now = new Date();
   const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
-  studyLogs.unshift({ id: uid(), date: dateStr, duration, subject });
+  studyLogs.unshift({ id: uid(), date: dateStr, duration, subject, materialId });
   saveStudyLogs();
   document.getElementById('timer-subject').value = '';
   studyElapsed = 0;
@@ -1584,9 +1709,19 @@ function renderStudyLogs() {
   studyLogs.forEach(entry => {
     const el = document.createElement('div');
     el.className = 'study-log-entry';
+    const mat = entry.materialId ? materials.find(m => m.id === entry.materialId) : null;
+    const matHtml = mat
+      ? `<div class="study-log-material">
+           ${mat.thumbnail ? `<img class="study-log-mat-thumb" src="${mat.thumbnail}">` : '📖'}
+           <span class="study-log-mat-name">${escHtml(mat.title)}</span>
+         </div>`
+      : '';
     el.innerHTML = `
       <span class="study-log-duration">${fmtDuration(entry.duration)}</span>
-      <span class="study-log-subject">${escHtml(entry.subject || '—')}</span>
+      <span class="study-log-subject" style="flex:1;min-width:0">
+        ${entry.subject ? escHtml(entry.subject) : (mat ? '' : '—')}
+        ${matHtml}
+      </span>
       <span class="study-log-date">${entry.date}</span>
       <button class="study-log-del" title="削除">×</button>`;
     el.querySelector('.study-log-del').addEventListener('click', () => {
@@ -1599,6 +1734,140 @@ function renderStudyLogs() {
 }
 
 renderStudyLogs();
+
+// ─── 教材管理 ───
+function renderMaterialSelector() {
+  const sel = document.getElementById('timer-material');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">教材を選択（任意）</option>';
+  materials.forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.title;
+    sel.appendChild(opt);
+  });
+  sel.value = materials.find(m => m.id === cur) ? cur : '';
+}
+
+function renderMyMaterials() {
+  const list = document.getElementById('my-material-list');
+  if (materials.length === 0) {
+    list.innerHTML = '<p class="material-empty">まだ教材が登録されていません</p>';
+    return;
+  }
+  list.innerHTML = '';
+  materials.forEach(m => {
+    const el = document.createElement('div');
+    el.className = 'my-material-item';
+    const thumb = m.thumbnail
+      ? `<img class="my-thumb" src="${m.thumbnail}" loading="lazy">`
+      : `<span class="my-thumb-ph">📖</span>`;
+    el.innerHTML = `
+      ${thumb}
+      <div class="my-material-info">
+        <div class="my-material-title">${escHtml(m.title)}</div>
+        ${m.author ? `<div class="my-material-sub">${escHtml(m.author)}</div>` : ''}
+      </div>
+      <button class="my-material-del" title="削除">×</button>`;
+    el.querySelector('.my-material-del').addEventListener('click', () => {
+      materials = materials.filter(x => x.id !== m.id);
+      saveMaterials();
+      renderMyMaterials();
+      renderMaterialSelector();
+    });
+    list.appendChild(el);
+  });
+}
+
+async function searchBooks(query) {
+  const resultsEl = document.getElementById('material-results');
+  resultsEl.innerHTML = '<p class="material-loading">検索中…</p>';
+  try {
+    const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=10&langRestrict=ja`;
+    const res = await fetch(url);
+    const data = await res.json();
+    const items = data.items || [];
+    if (items.length === 0) {
+      resultsEl.innerHTML = '<p class="material-empty">見つかりませんでした。独自追加を使ってください。</p>';
+      return;
+    }
+    resultsEl.innerHTML = '';
+    items.forEach(item => {
+      const info = item.volumeInfo;
+      const book = {
+        googleId: item.id,
+        title: info.title || '不明',
+        author: (info.authors || []).join(', '),
+        publisher: info.publisher || '',
+        thumbnail: info.imageLinks?.thumbnail?.replace('http:', 'https:') || null,
+        type: 'book',
+      };
+      const already = materials.some(m => m.googleId === book.googleId);
+      const card = document.createElement('div');
+      card.className = 'material-result-card';
+      const thumb = book.thumbnail
+        ? `<img class="material-thumb" src="${book.thumbnail}" loading="lazy">`
+        : `<span class="material-thumb-ph">📖</span>`;
+      card.innerHTML = `
+        ${thumb}
+        <div class="material-info">
+          <div class="material-title">${escHtml(book.title)}</div>
+          <div class="material-sub">${escHtml([book.author, book.publisher].filter(Boolean).join(' · '))}</div>
+        </div>
+        <button class="material-add-btn${already ? ' added' : ''}">${already ? '追加済' : '追加'}</button>`;
+      const btn = card.querySelector('.material-add-btn');
+      if (!already) {
+        btn.addEventListener('click', () => {
+          materials.push({ id: uid(), ...book });
+          saveMaterials();
+          renderMyMaterials();
+          renderMaterialSelector();
+          btn.textContent = '追加済';
+          btn.classList.add('added');
+        });
+      }
+      resultsEl.appendChild(card);
+    });
+  } catch(e) {
+    resultsEl.innerHTML = '<p class="material-empty">検索に失敗しました。</p>';
+  }
+}
+
+document.getElementById('material-manage-btn').addEventListener('click', () => {
+  document.getElementById('material-modal').style.display = 'flex';
+  renderMyMaterials();
+});
+document.getElementById('material-close').addEventListener('click', () => {
+  document.getElementById('material-modal').style.display = 'none';
+});
+document.getElementById('material-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('material-modal'))
+    document.getElementById('material-modal').style.display = 'none';
+});
+
+document.getElementById('material-search-btn').addEventListener('click', () => {
+  const q = document.getElementById('material-search-input').value.trim();
+  if (q) searchBooks(q);
+});
+document.getElementById('material-search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const q = e.target.value.trim();
+    if (q) searchBooks(q);
+  }
+});
+
+document.getElementById('material-custom-btn').addEventListener('click', () => {
+  const title = document.getElementById('material-custom-input').value.trim();
+  if (!title) return;
+  materials.push({ id: uid(), title, author: '', publisher: '', thumbnail: null, type: 'custom', googleId: null });
+  saveMaterials();
+  document.getElementById('material-custom-input').value = '';
+  renderMyMaterials();
+  renderMaterialSelector();
+  showToast('教材を追加しました');
+});
+
+renderMaterialSelector();
 </script>
 </body>
 </html>
