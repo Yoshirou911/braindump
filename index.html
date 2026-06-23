@@ -737,7 +737,7 @@
 <div class="api-section" id="api-section">
   <div class="api-toggle" id="api-toggle">
     <span class="api-toggle-arrow">▶</span>
-    <span id="api-status-label">AI分類の設定（APIキー）</span>
+    <span id="api-status-label">自動分類の設定（APIキー）</span>
   </div>
   <div class="api-body">
     <label>Groq APIキー（無料）</label>
@@ -761,7 +761,7 @@
     <button class="btn-primary" id="convert-btn">タスク化 →</button>
     <button class="btn-ai" id="ai-btn">
       <span id="ai-btn-icon">✦</span>
-      <span id="ai-btn-label">AI分類</span>
+      <span id="ai-btn-label">自動分類</span>
     </button>
   </div>
 </div>
@@ -992,8 +992,8 @@ const statusLabel = document.getElementById('api-status-label');
 function refreshApiStatus() {
   const k = loadKey();
   statusLabel.textContent = k
-    ? `AI分類: 設定済み (Groq)`
-    : 'AI分類の設定（Groq APIキー・無料）';
+    ? `自動分類: 設定済み (Groq)`
+    : '自動分類の設定（Groq APIキー・無料）';
 }
 apiKeyInput.value = loadKey();
 refreshApiStatus();
@@ -1019,7 +1019,7 @@ function showToast(msg, isError = false) {
   toastTimer = setTimeout(() => { el.className = ''; }, 3000);
 }
 
-// ─── AI分類 ───
+// ─── 自動分類 ───
 document.getElementById('ai-btn').addEventListener('click', async () => {
   if (aiLoading) return;
   const raw = document.getElementById('dump-area').value.trim();
@@ -1106,7 +1106,7 @@ function setAiLoading(on) {
     label.textContent = '分類中…';
   } else {
     document.getElementById('ai-btn-icon').outerHTML = '<span id="ai-btn-icon">✦</span>';
-    label.textContent = 'AI分類';
+    label.textContent = '自動分類';
   }
 }
 
