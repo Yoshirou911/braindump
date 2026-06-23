@@ -601,12 +601,24 @@
     cursor: pointer; font-size: .85rem; opacity: 0; transition: opacity .15s;
   }
   .study-log-entry:hover .study-log-del { opacity: 1; }
+
+  /* ─── 認証UI ─── */
+  .auth-ui { display: flex; align-items: center; gap: 8px; }
+  .user-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
+  .user-name { font-size: .78rem; color: var(--text-muted); max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #ddd; flex-shrink: 0; transition: background .3s; }
+  .sync-dot.syncing { background: #d4a017; animation: pulse .8s ease-in-out infinite; }
+  .sync-dot.synced  { background: #3aaa60; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
 </style>
 </head>
 <body>
 
 <div class="page-header">
   <h1>ブレインダンプ</h1>
+  <div class="auth-ui" id="auth-ui">
+    <button class="btn-ghost" id="login-btn" style="font-size:.78rem;padding:5px 10px">Googleでログイン</button>
+  </div>
 </div>
 <p class="subtitle">頭の中を全部書き出して、整理して、空にする。</p>
 
@@ -711,7 +723,92 @@
 <!-- トースト -->
 <div id="toast"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script>
+// ─── Firebase 初期化 ───
+firebase.initializeApp({
+  apiKey: "AIzaSyDye0m0ZFsIwoxbpvT4U6XnVjcPtdvEgqw",
+  authDomain: "kakeibo01-43ac9.firebaseapp.com",
+  projectId: "kakeibo01-43ac9",
+  storageBucket: "kakeibo01-43ac9.firebasestorage.app",
+  messagingSenderId: "938449266092",
+  appId: "1:938449266092:web:a830a52f77c5c75e864609"
+});
+const fbAuth = firebase.auth();
+const fbDb   = firebase.firestore();
+const googleProvider = new firebase.auth.GoogleAuthProvider();
+let currentUser = null;
+let syncTimer   = null;
+
+function scheduleSync() {
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncToFirestore, 1500);
+}
+
+async function syncToFirestore() {
+  if (!currentUser) return;
+  setSyncStatus('syncing');
+  try {
+    await fbDb.doc(`braindump/${currentUser.uid}`).set(
+      { tasks, logs, studyLogs, collapsed, updatedAt: Date.now() }
+    );
+    setSyncStatus('synced');
+  } catch(e) {
+    console.error('Sync error:', e);
+    setSyncStatus('');
+  }
+}
+
+async function loadFromFirestore(uid) {
+  setSyncStatus('syncing');
+  try {
+    const snap = await fbDb.doc(`braindump/${uid}`).get();
+    if (snap.exists()) {
+      const d = snap.data();
+      if (Array.isArray(d.tasks))     { tasks     = d.tasks;     localStorage.setItem('bd_tasks',      JSON.stringify(tasks)); }
+      if (Array.isArray(d.logs))      { logs       = d.logs;      localStorage.setItem('bd_logs',       JSON.stringify(logs)); }
+      if (Array.isArray(d.studyLogs)) { studyLogs  = d.studyLogs; localStorage.setItem('bd_study_logs', JSON.stringify(studyLogs)); }
+      if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
+    }
+    render(); renderLogs(); renderStudyLogs();
+    setSyncStatus('synced');
+  } catch(e) {
+    console.error('Load error:', e);
+    setSyncStatus('');
+  }
+}
+
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  if (dot) dot.className = 'sync-dot' + (status ? ' ' + status : '');
+}
+
+function updateAuthUI() {
+  const ui = document.getElementById('auth-ui');
+  if (currentUser) {
+    const avatar = currentUser.photoURL
+      ? `<img class="user-avatar" src="${currentUser.photoURL}" referrerpolicy="no-referrer">`
+      : '';
+    ui.innerHTML = `
+      <span class="sync-dot" id="sync-dot"></span>
+      ${avatar}
+      <span class="user-name">${escHtml(currentUser.displayName || currentUser.email || '')}</span>
+      <button class="btn-ghost" id="logout-btn" style="font-size:.78rem;padding:5px 10px">ログアウト</button>`;
+    document.getElementById('logout-btn').addEventListener('click', () => fbAuth.signOut());
+  } else {
+    ui.innerHTML = `<button class="btn-ghost" id="login-btn" style="font-size:.78rem;padding:5px 10px">Googleでログイン</button>`;
+    document.getElementById('login-btn').addEventListener('click', () => fbAuth.signInWithPopup(googleProvider));
+  }
+}
+
+fbAuth.onAuthStateChanged(user => {
+  currentUser = user;
+  updateAuthUI();
+  if (user) loadFromFirestore(user.uid);
+});
+
 const LANE_DEFS = [
   { id: 'unsorted', label: '未分類' },
   { id: 'now',      label: '今すぐ・期限あり' },
@@ -722,13 +819,13 @@ const LANE_DEFS = [
 
 // ─── ストレージ ───
 function loadTasks()     { try { return JSON.parse(localStorage.getItem('bd_tasks')     || '[]'); } catch { return []; } }
-function saveTasks()     { localStorage.setItem('bd_tasks',     JSON.stringify(tasks)); }
+function saveTasks()     { localStorage.setItem('bd_tasks',      JSON.stringify(tasks));     scheduleSync(); }
 function loadKey()       { return localStorage.getItem('bd_api_key') || ''; }
 function saveKey(k)      { localStorage.setItem('bd_api_key', k); }
 function loadCollapsed() { try { return JSON.parse(localStorage.getItem('bd_collapsed') || '{}'); } catch { return {}; } }
-function saveCollapsed() { localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
+function saveCollapsed() { localStorage.setItem('bd_collapsed',   JSON.stringify(collapsed)); scheduleSync(); }
 function loadStudyLogs() { try { return JSON.parse(localStorage.getItem('bd_study_logs') || '[]'); } catch { return []; } }
-function saveStudyLogs() { localStorage.setItem('bd_study_logs', JSON.stringify(studyLogs)); }
+function saveStudyLogs() { localStorage.setItem('bd_study_logs',  JSON.stringify(studyLogs)); scheduleSync(); }
 
 // ─── 状態 ───
 let tasks = loadTasks();
@@ -1151,7 +1248,7 @@ render();
 function loadLogs() {
   try { return JSON.parse(localStorage.getItem('bd_logs') || '[]'); } catch { return []; }
 }
-function saveLogs() { localStorage.setItem('bd_logs', JSON.stringify(logs)); }
+function saveLogs() { localStorage.setItem('bd_logs', JSON.stringify(logs)); scheduleSync(); }
 
 let logs = loadLogs();
 
