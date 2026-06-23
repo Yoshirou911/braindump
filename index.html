@@ -579,6 +579,18 @@
   }
   .timer-display.running { color: #3aaa60; }
   .timer-controls { display: flex; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  .timer-manual-row {
+    display: flex; align-items: center; gap: 6px;
+    margin-bottom: 10px; font-size: .85rem; color: var(--text-muted);
+  }
+  .timer-hm-input {
+    width: 52px; border: 1px solid var(--border); border-radius: 6px;
+    padding: 5px 8px; font-size: .9rem; font-family: inherit;
+    background: var(--bg); color: var(--text); outline: none;
+    text-align: center; font-variant-numeric: tabular-nums;
+  }
+  .timer-hm-input:focus { border-color: #999; }
+  .timer-hm-sep { font-weight: 700; color: var(--text); }
   .timer-record-row { display: flex; gap: 8px; margin-bottom: 10px; }
   .timer-subject {
     flex: 1; border: 1px solid var(--border); border-radius: 6px;
@@ -710,6 +722,13 @@
     <div class="timer-controls">
       <button class="btn-primary" id="timer-start">スタート</button>
       <button class="btn-ghost" id="timer-reset">リセット</button>
+    </div>
+    <div class="timer-manual-row">
+      <span>記録する時間:</span>
+      <input type="number" id="timer-h" class="timer-hm-input" min="0" max="23" value="0">
+      <span class="timer-hm-sep">h</span>
+      <input type="number" id="timer-m" class="timer-hm-input" min="0" max="59" value="0">
+      <span class="timer-hm-sep">m</span>
     </div>
     <div class="timer-record-row">
       <input type="text" class="timer-subject" id="timer-subject" placeholder="科目・内容（任意）">
@@ -1485,6 +1504,25 @@ function updateTimerDisplay() {
   document.getElementById('timer-display').textContent = fmtDuration(elapsed);
 }
 
+function getManualMs() {
+  const h = parseInt(document.getElementById('timer-h').value) || 0;
+  const m = parseInt(document.getElementById('timer-m').value) || 0;
+  return (h * 3600 + m * 60) * 1000;
+}
+function setManualInputs(ms) {
+  const s = Math.floor(ms / 1000);
+  document.getElementById('timer-h').value = Math.floor(s / 3600);
+  document.getElementById('timer-m').value = Math.floor((s % 3600) / 60);
+  refreshSaveBtn();
+}
+function refreshSaveBtn() {
+  document.getElementById('timer-save').disabled = getManualMs() === 0;
+}
+
+// H/M 入力が変わったら記録ボタンの有効無効を更新
+document.getElementById('timer-h').addEventListener('input', refreshSaveBtn);
+document.getElementById('timer-m').addEventListener('input', refreshSaveBtn);
+
 document.getElementById('timer-start').addEventListener('click', () => {
   if (studyRunning) {
     studyElapsed += Date.now() - studyStart;
@@ -1493,7 +1531,7 @@ document.getElementById('timer-start').addEventListener('click', () => {
     clearInterval(studyInterval); studyInterval = null;
     document.getElementById('timer-display').classList.remove('running');
     document.getElementById('timer-start').textContent = 'スタート';
-    document.getElementById('timer-save').disabled = studyElapsed === 0;
+    setManualInputs(studyElapsed);
   } else {
     studyStart = Date.now();
     studyRunning = true;
@@ -1511,21 +1549,25 @@ document.getElementById('timer-reset').addEventListener('click', () => {
   document.getElementById('timer-display').textContent = '00:00:00';
   document.getElementById('timer-display').classList.remove('running');
   document.getElementById('timer-start').textContent = 'スタート';
+  document.getElementById('timer-h').value = 0;
+  document.getElementById('timer-m').value = 0;
   document.getElementById('timer-save').disabled = true;
 });
 
 document.getElementById('timer-save').addEventListener('click', () => {
-  if (studyElapsed === 0) return;
+  const duration = getManualMs();
+  if (duration === 0) return;
   const subject = document.getElementById('timer-subject').value.trim();
   const now = new Date();
   const dateStr = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
-  studyLogs.unshift({ id: uid(), date: dateStr, duration: studyElapsed, subject });
+  studyLogs.unshift({ id: uid(), date: dateStr, duration, subject });
   saveStudyLogs();
   document.getElementById('timer-subject').value = '';
-  // reset
   studyElapsed = 0;
   document.getElementById('timer-display').textContent = '00:00:00';
   document.getElementById('timer-start').textContent = 'スタート';
+  document.getElementById('timer-h').value = 0;
+  document.getElementById('timer-m').value = 0;
   document.getElementById('timer-save').disabled = true;
   renderStudyLogs();
   showToast('勉強時間を記録しました');
