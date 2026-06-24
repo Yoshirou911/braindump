@@ -614,6 +614,45 @@
   }
   .study-log-entry:hover .study-log-del { opacity: 1; }
 
+  /* ─── レポート ─── */
+  .report-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    display: flex; align-items: flex-start; justify-content: center;
+    z-index: 130; padding: 20px 16px; overflow-y: auto;
+  }
+  .report-box {
+    background: var(--surface); border-radius: 12px; padding: 20px;
+    max-width: 520px; width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,.25); margin: auto;
+  }
+  .report-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .report-title { font-size: 1rem; font-weight: 700; }
+  .report-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); line-height: 1; }
+  .report-close:hover { color: var(--text); }
+  .report-range-row { display: flex; gap: 6px; margin-bottom: 16px; }
+  .range-btn {
+    font-size: .75rem; padding: 4px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text-muted); cursor: pointer; font-family: inherit;
+  }
+  .range-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .report-summary {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 20px;
+  }
+  .summary-card {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 8px; text-align: center;
+  }
+  .summary-label { font-size: .68rem; color: var(--text-muted); margin-bottom: 4px; }
+  .summary-value { font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .report-section-title {
+    font-size: .75rem; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px;
+  }
+  .report-chart-wrap { margin-bottom: 24px; }
+  .report-empty { text-align: center; padding: 32px 0; color: var(--text-muted); font-size: .85rem; }
+
   /* ─── 認証UI ─── */
   .auth-ui { display: flex; align-items: center; gap: 8px; }
   .user-avatar { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; }
@@ -799,6 +838,28 @@
   </div>
 </div>
 
+<!-- レポートモーダル -->
+<div class="report-overlay" id="report-modal" style="display:none">
+  <div class="report-box">
+    <div class="report-header">
+      <span class="report-title">📊 勉強レポート</span>
+      <button class="report-close" id="report-close">×</button>
+    </div>
+    <div class="report-range-row">
+      <button class="range-btn active" data-days="7">7日</button>
+      <button class="range-btn" data-days="30">30日</button>
+      <button class="range-btn" data-days="90">90日</button>
+    </div>
+    <div class="report-summary">
+      <div class="summary-card"><div class="summary-label">今日</div><div class="summary-value" id="stat-today">—</div></div>
+      <div class="summary-card"><div class="summary-label">今週</div><div class="summary-value" id="stat-week">—</div></div>
+      <div class="summary-card"><div class="summary-label">今月</div><div class="summary-value" id="stat-month">—</div></div>
+      <div class="summary-card"><div class="summary-label">合計</div><div class="summary-value" id="stat-total">—</div></div>
+    </div>
+    <div id="report-body"></div>
+  </div>
+</div>
+
 <!-- 教材管理モーダル -->
 <div class="material-overlay" id="material-modal" style="display:none">
   <div class="material-box">
@@ -829,6 +890,7 @@
   <div class="study-header" id="study-header">
     <span>⏱</span>
     <span class="study-title">勉強タイマー</span>
+    <button class="btn-ghost" id="report-open-btn" style="font-size:.75rem;padding:3px 10px;margin-left:auto;margin-right:6px" onclick="event.stopPropagation()">📊 レポート</button>
     <span class="study-toggle">▾</span>
   </div>
   <div class="study-body">
@@ -864,6 +926,7 @@
 <!-- トースト -->
 <div id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
@@ -1875,6 +1938,170 @@ document.getElementById('material-custom-btn').addEventListener('click', () => {
 });
 
 renderMaterialSelector();
+
+// ─── レポート ───
+let reportDays = 7;
+let chartBar = null;
+let chartDoughnut = null;
+
+function fmtHM(ms) {
+  const total = Math.floor(ms / 60000);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return h > 0 ? `${h}h${m}m` : `${m}m`;
+}
+
+function logDateStr(d) {
+  return `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+}
+
+function renderReport() {
+  if (studyLogs.length === 0) {
+    document.getElementById('report-body').innerHTML =
+      '<p class="report-empty">まだ記録がありません。<br>タイマーで勉強時間を記録してみましょう！</p>';
+    ['stat-today','stat-week','stat-month','stat-total'].forEach(id => {
+      document.getElementById(id).textContent = '0m';
+    });
+    if (chartBar)      { chartBar.destroy();      chartBar = null; }
+    if (chartDoughnut) { chartDoughnut.destroy();  chartDoughnut = null; }
+    return;
+  }
+
+  const now = new Date();
+
+  // ─ サマリー ─
+  const todayKey = logDateStr(now);
+  const todayMs = studyLogs.filter(l => l.date === todayKey).reduce((s,l) => s + l.duration, 0);
+
+  const weekSet = new Set();
+  for (let i = 0; i < 7; i++) { const d = new Date(now); d.setDate(d.getDate()-i); weekSet.add(logDateStr(d)); }
+  const weekMs = studyLogs.filter(l => weekSet.has(l.date)).reduce((s,l) => s + l.duration, 0);
+
+  const monthPrefix = `${now.getFullYear()}/${now.getMonth()+1}/`;
+  const monthMs = studyLogs.filter(l => l.date.startsWith(monthPrefix)).reduce((s,l) => s + l.duration, 0);
+  const totalMs  = studyLogs.reduce((s,l) => s + l.duration, 0);
+
+  document.getElementById('stat-today').textContent = fmtHM(todayMs);
+  document.getElementById('stat-week').textContent  = fmtHM(weekMs);
+  document.getElementById('stat-month').textContent = fmtHM(monthMs);
+  document.getElementById('stat-total').textContent = fmtHM(totalMs);
+
+  // ─ 棒グラフ（日別） ─
+  const barLabels = [], barData = [];
+  for (let i = reportDays - 1; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    barLabels.push(`${d.getMonth()+1}/${d.getDate()}`);
+    const ms = studyLogs.filter(l => l.date === logDateStr(d)).reduce((s,l) => s + l.duration, 0);
+    barData.push(+(ms / 60000).toFixed(1));
+  }
+
+  // ─ ドーナツグラフ（教材別） ─
+  const matMap = {};
+  studyLogs.forEach(l => {
+    const key = l.materialId || '__none__';
+    matMap[key] = (matMap[key] || 0) + l.duration;
+  });
+  const PALETTE = ['#5b4cdb','#3aaa60','#e05252','#d4a017','#4a9eda','#e08c30','#b06cdb','#9a9a96'];
+  const pieLabels = [], pieData = [], pieColors = [];
+  let ci = 0;
+  Object.entries(matMap).sort((a,b) => b[1]-a[1]).forEach(([key, ms]) => {
+    const mat = key === '__none__' ? null : materials.find(m => m.id === key);
+    pieLabels.push(mat ? mat.title : (key === '__none__' ? '教材未設定' : '削除済み'));
+    pieData.push(+(ms / 60000).toFixed(1));
+    pieColors.push(PALETTE[ci++ % PALETTE.length]);
+  });
+
+  document.getElementById('report-body').innerHTML = `
+    <div class="report-chart-wrap">
+      <p class="report-section-title">日別勉強時間（直近${reportDays}日）</p>
+      <canvas id="chart-bar"></canvas>
+    </div>
+    <div class="report-chart-wrap">
+      <p class="report-section-title">教材別の割合</p>
+      <canvas id="chart-doughnut"></canvas>
+    </div>`;
+
+  if (chartBar)      { chartBar.destroy();      chartBar = null; }
+  if (chartDoughnut) { chartDoughnut.destroy();  chartDoughnut = null; }
+
+  const isDark = getComputedStyle(document.body).getPropertyValue('--text').trim().startsWith('#f') ||
+                 getComputedStyle(document.body).backgroundColor === 'rgb(0,0,0)';
+  const tickColor = getComputedStyle(document.documentElement).getPropertyValue('--text-muted').trim() || '#999';
+  const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--border').trim() || '#e0e0dc';
+
+  chartBar = new Chart(document.getElementById('chart-bar').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: barLabels,
+      datasets: [{ data: barData, backgroundColor: '#5b4cdb', borderRadius: 4, label: '分' }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const m = ctx.parsed.y;
+              const h = Math.floor(m / 60), min = Math.round(m % 60);
+              return h > 0 ? ` ${h}時間${min}分` : ` ${min}分`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: tickColor, font: { size: 11 } }, grid: { color: gridColor } },
+        y: { beginAtZero: true, ticks: { color: tickColor, font: { size: 11 }, callback: v => `${v}m` }, grid: { color: gridColor } }
+      }
+    }
+  });
+
+  chartDoughnut = new Chart(document.getElementById('chart-doughnut').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: pieLabels,
+      datasets: [{ data: pieData, backgroundColor: pieColors, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 }, color: tickColor, padding: 12 } },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const m = ctx.parsed;
+              const h = Math.floor(m / 60), min = Math.round(m % 60);
+              const sum = ctx.dataset.data.reduce((a,b) => a+b, 0);
+              const pct = Math.round(m / sum * 100);
+              const time = h > 0 ? `${h}時間${min}分` : `${min}分`;
+              return ` ${time}（${pct}%）`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+document.getElementById('report-open-btn').addEventListener('click', () => {
+  document.getElementById('report-modal').style.display = 'flex';
+  renderReport();
+});
+document.getElementById('report-close').addEventListener('click', () => {
+  document.getElementById('report-modal').style.display = 'none';
+});
+document.getElementById('report-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('report-modal'))
+    document.getElementById('report-modal').style.display = 'none';
+});
+document.querySelectorAll('.range-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    reportDays = parseInt(btn.dataset.days);
+    renderReport();
+  });
+});
 </script>
 </body>
 </html>
