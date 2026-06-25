@@ -973,11 +973,15 @@ async function loadFromFirestore(uid) {
       const d = snap.data();
       if (Array.isArray(d.tasks))     { tasks     = d.tasks;     localStorage.setItem('bd_tasks',      JSON.stringify(tasks)); }
       if (Array.isArray(d.logs))      { logs       = d.logs;      localStorage.setItem('bd_logs',       JSON.stringify(logs)); }
-      if (Array.isArray(d.studyLogs))  { studyLogs  = d.studyLogs;  localStorage.setItem('bd_study_logs',  JSON.stringify(studyLogs)); }
-      if (Array.isArray(d.materials))  { materials  = d.materials;  localStorage.setItem('bd_materials',   JSON.stringify(materials)); }
+      if (Array.isArray(d.studyLogs)) { studyLogs  = d.studyLogs; localStorage.setItem('bd_study_logs', JSON.stringify(studyLogs)); }
+      if (Array.isArray(d.materials)) { materials  = d.materials; localStorage.setItem('bd_materials',  JSON.stringify(materials)); }
       if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
+    } else {
+      // Firestore にデータなし → ローカルデータをアップロード
+      const hasLocal = tasks.length > 0 || logs.length > 0 || studyLogs.length > 0;
+      if (hasLocal) await syncToFirestore();
     }
-    render(); renderLogs(); renderStudyLogs();
+    render(); renderLogs(); renderStudyLogs(); renderMaterialSelector();
     setSyncStatus('synced');
   } catch(e) {
     console.error('Load error:', e);
