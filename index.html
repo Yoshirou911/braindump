@@ -969,7 +969,7 @@ async function loadFromFirestore(uid) {
   setSyncStatus('syncing');
   try {
     const snap = await fbDb.doc(`braindump/${uid}`).get();
-    if (snap.exists()) {
+    if (snap.exists) {
       const d = snap.data();
       if (Array.isArray(d.tasks))     { tasks     = d.tasks;     localStorage.setItem('bd_tasks',      JSON.stringify(tasks)); }
       if (Array.isArray(d.logs))      { logs       = d.logs;      localStorage.setItem('bd_logs',       JSON.stringify(logs)); }
