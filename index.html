@@ -809,6 +809,39 @@
   }
   .progress-card:hover .progress-card-del { opacity: 1; }
 
+  /* ─── 道筋タブ ─── */
+  .roadmap-new-row { display:flex; gap:8px; margin-top:12px; }
+  .roadmap-editor-header { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+  .roadmap-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .roadmap-node-add-row { display:flex; gap:8px; flex:1; min-width:180px; }
+  .roadmap-node-input {
+    flex:1; border:1px solid var(--border); border-radius:6px;
+    padding:7px 10px; font-size:.85rem; font-family:inherit;
+    background:var(--bg); color:var(--text); outline:none;
+  }
+  .roadmap-node-input:focus { border-color:#999; }
+  .roadmap-modes { display:flex; gap:4px; }
+  .roadmap-mode-btn {
+    padding:6px 12px; border:1.5px solid var(--border); border-radius:6px;
+    background:var(--bg); color:var(--text-muted); font-size:.78rem;
+    font-family:inherit; cursor:pointer; transition:all .15s; white-space:nowrap;
+  }
+  .roadmap-mode-btn:hover { border-color:#999; color:var(--text); }
+  .roadmap-mode-btn.active { background:var(--text); color:#fff; border-color:var(--text); }
+  .roadmap-svg-container {
+    border:1px solid var(--border); border-radius:var(--radius);
+    overflow:hidden; background:#fafaf8;
+  }
+  #roadmap-svg { width:100%; height:400px; display:block; cursor:default; }
+  .roadmap-item {
+    display:flex; align-items:center; gap:10px; padding:10px 12px;
+    border:1px solid var(--border); border-radius:6px;
+    background:var(--bg); margin-bottom:6px; cursor:pointer; transition:border-color .15s;
+  }
+  .roadmap-item:hover { border-color:#bbb; }
+  .roadmap-item-title { flex:1; font-size:.88rem; font-weight:600; }
+  .roadmap-item-count { font-size:.72rem; color:var(--text-muted); }
+
   /* ─── レポート ─── */
   .report-overlay {
     position: fixed; inset: 0;
@@ -962,6 +995,7 @@
   <button class="tab-btn active" data-tab="task">タスク</button>
   <button class="tab-btn" data-tab="study">勉強</button>
   <button class="tab-btn" data-tab="progress">進捗</button>
+  <button class="tab-btn" data-tab="roadmap">道筋</button>
 </div>
 
 <!-- タスクタブ -->
@@ -1182,6 +1216,57 @@
 
 </div><!-- /tab-progress -->
 
+<!-- 道筋タブ -->
+<div class="tab-content" id="tab-roadmap">
+
+  <!-- 道筋一覧カード -->
+  <div class="study-card" id="roadmap-list-card">
+    <div class="study-card-label">🗺 道筋</div>
+    <div id="roadmap-list"></div>
+    <div class="roadmap-new-row">
+      <input type="text" class="progress-form-input" id="roadmap-new-title" placeholder="新しい道筋のタイトル（例: C++マスターになる）">
+      <button class="btn-primary" id="roadmap-new-btn">作成</button>
+    </div>
+  </div>
+
+  <!-- グラフエディタカード -->
+  <div class="study-card" id="roadmap-editor-card" style="display:none">
+    <div class="roadmap-editor-header">
+      <span class="study-card-label" style="margin:0;flex:1" id="roadmap-editor-title"></span>
+      <button class="btn-ghost" id="roadmap-delete-btn" style="font-size:.75rem;padding:4px 10px;color:#c0392b">道筋を削除</button>
+      <button class="btn-ghost" id="roadmap-back-btn" style="font-size:.75rem;padding:4px 10px">← 一覧</button>
+    </div>
+
+    <div class="roadmap-toolbar">
+      <div class="roadmap-node-add-row">
+        <input type="text" class="roadmap-node-input" id="roadmap-node-input" placeholder="ノードのラベルを入力…">
+        <button class="btn-primary" id="roadmap-add-node-btn" style="font-size:.8rem;padding:6px 14px;white-space:nowrap">+ ノード追加</button>
+      </div>
+      <div class="roadmap-modes">
+        <button class="roadmap-mode-btn active" data-mode="move">✥ 移動</button>
+        <button class="roadmap-mode-btn" data-mode="connect">→ 接続</button>
+        <button class="roadmap-mode-btn" data-mode="delete">✕ 削除</button>
+      </div>
+    </div>
+
+    <div class="roadmap-svg-container">
+      <svg id="roadmap-svg" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="rm-arrow" markerWidth="9" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 9 3, 0 6" fill="#b0b0aa"/>
+          </marker>
+        </defs>
+        <g id="roadmap-edges"></g>
+        <g id="roadmap-nodes"></g>
+      </svg>
+    </div>
+    <p class="progress-upload-hint" style="margin-top:8px;margin-bottom:0">
+      移動: ノードをドラッグ &nbsp;|&nbsp; 接続: ノードを順にクリック &nbsp;|&nbsp; 削除: ノードまたは矢印をクリック
+    </p>
+  </div>
+
+</div><!-- /tab-roadmap -->
+
 <!-- 週次レビューモーダル -->
 <div class="review-overlay" id="review-modal" style="display:none">
   <div class="review-box">
@@ -1269,7 +1354,7 @@ async function syncToFirestore() {
   setSyncStatus('syncing');
   try {
     await fbDb.doc(`braindump/${currentUser.uid}`).set(
-      { tasks, logs, studyLogs, studyNotes, progressLogs, collapsed, materials, updatedAt: Date.now() }
+      { tasks, logs, studyLogs, studyNotes, progressLogs, roadmaps, collapsed, materials, updatedAt: Date.now() }
     );
     setSyncStatus('synced');
   } catch(e) {
@@ -1290,13 +1375,14 @@ async function loadFromFirestore(uid) {
       if (Array.isArray(d.materials))   { materials   = d.materials;   localStorage.setItem('bd_materials',    JSON.stringify(materials)); }
       if (Array.isArray(d.studyNotes))   { studyNotes   = d.studyNotes;   localStorage.setItem('bd_study_notes', JSON.stringify(studyNotes)); }
       if (Array.isArray(d.progressLogs)) { progressLogs = d.progressLogs; localStorage.setItem('bd_progress',    JSON.stringify(progressLogs)); }
+      if (Array.isArray(d.roadmaps))     { roadmaps     = d.roadmaps;     localStorage.setItem('bd_roadmaps',    JSON.stringify(roadmaps)); }
       if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
     } else {
       // Firestore にデータなし → ローカルデータをアップロード
       const hasLocal = tasks.length > 0 || logs.length > 0 || studyLogs.length > 0;
       if (hasLocal) await syncToFirestore();
     }
-    render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderProgressList(); renderMaterialSelector();
+    render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderProgressList(); renderRoadmapList(); renderMaterialSelector();
     setSyncStatus('synced');
   } catch(e) {
     console.error('Load error:', e);
@@ -1356,6 +1442,8 @@ function loadStudyNotes()    { try { return JSON.parse(localStorage.getItem('bd_
 function saveStudyNotes()    { localStorage.setItem('bd_study_notes',   JSON.stringify(studyNotes));   scheduleSync(); }
 function loadProgressLogs()  { try { return JSON.parse(localStorage.getItem('bd_progress')      || '[]'); } catch { return []; } }
 function saveProgressLogs()  { localStorage.setItem('bd_progress',      JSON.stringify(progressLogs)); scheduleSync(); }
+function loadRoadmaps()      { try { return JSON.parse(localStorage.getItem('bd_roadmaps')     || '[]'); } catch { return []; } }
+function saveRoadmaps()      { localStorage.setItem('bd_roadmaps',      JSON.stringify(roadmaps));      scheduleSync(); }
 
 // ─── 状態 ───
 let tasks = loadTasks();
@@ -1367,6 +1455,7 @@ let studyLogs = loadStudyLogs();
 let materials = loadMaterials();
 let studyNotes    = loadStudyNotes();
 let progressLogs  = loadProgressLogs();
+let roadmaps      = loadRoadmaps();
 let progressDraft        = null; // { fileName, body, date }
 const PROGRESS_DEFAULT_TAGS = ['C++', '基本情報', '復習', 'Siv3D', 'アルゴリズム'];
 let progressTagPool      = [...PROGRESS_DEFAULT_TAGS];
@@ -2215,6 +2304,207 @@ function renderProgressList() {
   });
 }
 renderProgressList();
+
+// ─── 道筋エディタ ───
+const NODE_W = 130, NODE_H = 44, NODE_R = 8;
+const ROADMAP_W = 800, ROADMAP_H = 450;
+let currentRmId  = null;
+let editorMode   = 'move';
+let connectFrom  = null;
+let dragState    = null;
+
+function getCurrentRm() { return roadmaps.find(r => r.id === currentRmId) || null; }
+
+function renderRoadmapList() {
+  const el = document.getElementById('roadmap-list');
+  if (!el) return;
+  if (roadmaps.length === 0) {
+    el.innerHTML = '<p class="progress-empty" style="margin-bottom:12px">まだ道筋がありません</p>';
+    return;
+  }
+  el.innerHTML = '';
+  roadmaps.forEach(rm => {
+    const div = document.createElement('div');
+    div.className = 'roadmap-item';
+    div.innerHTML = `
+      <span class="roadmap-item-title">${escHtml(rm.title)}</span>
+      <span class="roadmap-item-count">${rm.nodes.length} ノード</span>
+      <span style="color:var(--text-muted);font-size:.8rem">▶</span>`;
+    div.addEventListener('click', () => openRoadmapEditor(rm.id));
+    el.appendChild(div);
+  });
+}
+
+function openRoadmapEditor(id) {
+  currentRmId = id;
+  const rm = getCurrentRm();
+  document.getElementById('roadmap-list-card').style.display   = 'none';
+  document.getElementById('roadmap-editor-card').style.display = 'block';
+  document.getElementById('roadmap-editor-title').textContent  = rm.title;
+  setRmMode('move');
+  renderGraph();
+}
+
+function setRmMode(mode) {
+  editorMode  = mode;
+  connectFrom = null;
+  document.querySelectorAll('.roadmap-mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('roadmap-svg').style.cursor =
+    mode === 'move' ? 'default' : 'crosshair';
+  if (mode !== 'connect') renderGraph(); // clear selection highlight
+}
+
+function toSvgPt(e) {
+  const svg = document.getElementById('roadmap-svg');
+  const pt  = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+
+function renderGraph() {
+  const rm = getCurrentRm();
+  if (!rm) return;
+  const edgesEl = document.getElementById('roadmap-edges');
+  const nodesEl = document.getElementById('roadmap-nodes');
+  edgesEl.innerHTML = '';
+  nodesEl.innerHTML = '';
+
+  rm.edges.forEach(edge => {
+    const a = rm.nodes.find(n => n.id === edge.from);
+    const b = rm.nodes.find(n => n.id === edge.to);
+    if (!a || !b) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', a.x + NODE_W / 2); line.setAttribute('y1', a.y + NODE_H / 2);
+    line.setAttribute('x2', b.x + NODE_W / 2); line.setAttribute('y2', b.y + NODE_H / 2);
+    line.setAttribute('stroke', '#c4c4c0');
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('marker-end', 'url(#rm-arrow)');
+    if (editorMode === 'delete') {
+      line.style.cursor = 'pointer';
+      line.addEventListener('click', () => {
+        rm.edges = rm.edges.filter(e => e.id !== edge.id);
+        saveRoadmaps(); renderGraph();
+      });
+    }
+    edgesEl.appendChild(line);
+  });
+
+  rm.nodes.forEach(node => {
+    const isSelected = connectFrom === node.id;
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `translate(${node.x},${node.y})`);
+    g.style.cursor = editorMode === 'move' ? 'grab' : 'pointer';
+
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('width', NODE_W); rect.setAttribute('height', NODE_H); rect.setAttribute('rx', NODE_R);
+    rect.setAttribute('fill', isSelected ? '#f0faf3' : '#ffffff');
+    rect.setAttribute('stroke', isSelected ? '#3aaa60' : '#d4d4d0');
+    rect.setAttribute('stroke-width', isSelected ? '2.5' : '1.5');
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', NODE_W / 2); text.setAttribute('y', NODE_H / 2 + 4);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '12');
+    text.setAttribute('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+    text.setAttribute('fill', '#2c2c2a');
+    text.textContent = node.label.length > 14 ? node.label.slice(0, 13) + '…' : node.label;
+
+    g.appendChild(rect);
+    g.appendChild(text);
+
+    g.addEventListener('mousedown', e => {
+      if (editorMode !== 'move') return;
+      e.preventDefault();
+      const pt = toSvgPt(e);
+      dragState = { nodeId: node.id, dx: pt.x - node.x, dy: pt.y - node.y };
+    });
+
+    g.addEventListener('click', e => {
+      e.stopPropagation();
+      if (editorMode === 'delete') {
+        rm.nodes = rm.nodes.filter(n => n.id !== node.id);
+        rm.edges = rm.edges.filter(e => e.from !== node.id && e.to !== node.id);
+        saveRoadmaps(); renderGraph();
+      } else if (editorMode === 'connect') {
+        if (!connectFrom) {
+          connectFrom = node.id; renderGraph();
+        } else if (connectFrom === node.id) {
+          connectFrom = null; renderGraph();
+        } else {
+          if (!rm.edges.find(e => e.from === connectFrom && e.to === node.id)) {
+            rm.edges.push({ id: Date.now().toString(), from: connectFrom, to: node.id });
+            saveRoadmaps();
+          }
+          connectFrom = null; renderGraph();
+        }
+      }
+    });
+
+    nodesEl.appendChild(g);
+  });
+}
+
+const rmSvg = document.getElementById('roadmap-svg');
+rmSvg.addEventListener('mousemove', e => {
+  if (!dragState) return;
+  const rm = getCurrentRm(); if (!rm) return;
+  const pt   = toSvgPt(e);
+  const node = rm.nodes.find(n => n.id === dragState.nodeId); if (!node) return;
+  node.x = Math.max(0, Math.min(pt.x - dragState.dx, ROADMAP_W - NODE_W));
+  node.y = Math.max(0, Math.min(pt.y - dragState.dy, ROADMAP_H - NODE_H));
+  renderGraph();
+});
+rmSvg.addEventListener('mouseup',    () => { if (dragState) { saveRoadmaps(); dragState = null; } });
+rmSvg.addEventListener('mouseleave', () => { if (dragState) { saveRoadmaps(); dragState = null; } });
+
+function addRoadmapNode() {
+  const input = document.getElementById('roadmap-node-input');
+  const label = input.value.trim(); if (!label) return;
+  const rm = getCurrentRm(); if (!rm) return;
+  const i = rm.nodes.length;
+  rm.nodes.push({
+    id: Date.now().toString(), label,
+    x: 30 + (i % 4) * (NODE_W + 35),
+    y: 30 + Math.floor(i / 4) * (NODE_H + 50)
+  });
+  saveRoadmaps(); renderGraph(); input.value = '';
+}
+
+function createRoadmap() {
+  const input = document.getElementById('roadmap-new-title');
+  const title = input.value.trim(); if (!title) return;
+  const rm = { id: Date.now().toString(), title, nodes: [], edges: [] };
+  roadmaps.unshift(rm); saveRoadmaps(); renderRoadmapList();
+  input.value = '';
+  openRoadmapEditor(rm.id);
+}
+
+document.getElementById('roadmap-add-node-btn').addEventListener('click', addRoadmapNode);
+document.getElementById('roadmap-node-input').addEventListener('keydown', e => { if (e.key === 'Enter') addRoadmapNode(); });
+document.getElementById('roadmap-new-btn').addEventListener('click', createRoadmap);
+document.getElementById('roadmap-new-title').addEventListener('keydown', e => { if (e.key === 'Enter') createRoadmap(); });
+document.querySelectorAll('.roadmap-mode-btn').forEach(btn =>
+  btn.addEventListener('click', () => setRmMode(btn.dataset.mode)));
+
+document.getElementById('roadmap-back-btn').addEventListener('click', () => {
+  currentRmId = null;
+  document.getElementById('roadmap-editor-card').style.display = 'none';
+  document.getElementById('roadmap-list-card').style.display   = 'block';
+  renderRoadmapList();
+});
+
+document.getElementById('roadmap-delete-btn').addEventListener('click', () => {
+  const rm = getCurrentRm(); if (!rm) return;
+  if (!confirm(`「${rm.title}」を削除しますか？`)) return;
+  roadmaps = roadmaps.filter(r => r.id !== currentRmId);
+  saveRoadmaps(); currentRmId = null;
+  document.getElementById('roadmap-editor-card').style.display = 'none';
+  document.getElementById('roadmap-list-card').style.display   = 'block';
+  renderRoadmapList();
+});
+
+renderRoadmapList();
 
 // ─── 進捗ファイル読み込み ───
 function showProgressPreview() {
