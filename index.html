@@ -2375,9 +2375,36 @@ document.getElementById('progress-confirm-back').addEventListener('click', () =>
   document.getElementById('progress-form-card').style.display    = 'block';
 });
 
-document.getElementById('progress-confirm-save').addEventListener('click', () => {
-  showToast('保存処理は次のステージで実装します');
-});
+document.getElementById('progress-confirm-save').addEventListener('click', saveProgressEntry);
+
+function saveProgressEntry() {
+  const entry = {
+    id:       Date.now().toString(),
+    ts:       Date.now(),
+    date:     progressDraft.date,
+    title:    progressDraft.title,
+    body:     progressDraft.body,
+    tags:     progressDraft.tags,
+    subject:  progressDraft.subject,
+    fileName: progressDraft.fileName
+  };
+  progressLogs.unshift(entry);
+  saveProgressLogs();
+  renderProgressList();
+  resetProgressFlow();
+  showToast('進捗を保存しました');
+}
+
+function resetProgressFlow() {
+  progressDraft        = null;
+  progressSelectedTags = [];
+  progressTagPool      = [...PROGRESS_DEFAULT_TAGS];
+  // 全カードを初期状態に戻す
+  document.getElementById('progress-confirm-card').style.display = 'none';
+  document.getElementById('progress-form-card').style.display    = 'none';
+  document.getElementById('progress-file-preview').style.display = 'none';
+  document.getElementById('progress-select-area').style.display  = '';
+}
 
 document.getElementById('study-note-save').addEventListener('click', () => {
   const input = document.getElementById('study-note-input');
