@@ -754,6 +754,37 @@
   .progress-preview-actions {
     display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;
   }
+  .progress-form-file {
+    font-size: .78rem; color: var(--text-muted); margin-bottom: 14px;
+  }
+  .progress-form-group { margin-bottom: 14px; }
+  .progress-form-label {
+    display: block; font-size: .72rem; font-weight: 700;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: .06em; margin-bottom: 6px;
+  }
+  .progress-form-input {
+    width: 100%; border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 11px; font-size: .85rem; font-family: inherit;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  .progress-form-input:focus { border-color: #999; }
+  .progress-tag-picker { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .progress-tag-pick-btn {
+    padding: 4px 11px; border-radius: 12px; font-size: .75rem;
+    border: 1.5px solid var(--border); background: var(--bg);
+    color: var(--text-muted); cursor: pointer; font-family: inherit;
+    transition: all .15s;
+  }
+  .progress-tag-pick-btn:hover { border-color: #999; color: var(--text); }
+  .progress-tag-pick-btn.selected { background: var(--text); color: #fff; border-color: var(--text); }
+  .progress-tag-add-row { display: flex; gap: 8px; margin-top: 6px; }
+  .progress-tag-add-input {
+    flex: 1; border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; font-size: .82rem; font-family: inherit;
+    background: var(--bg); color: var(--text); outline: none;
+  }
+  .progress-tag-add-input:focus { border-color: #999; }
   .progress-card-del {
     background: none; border: none; color: var(--text-muted); cursor: pointer;
     font-size: .85rem; flex-shrink: 0; opacity: 0; transition: opacity .15s; padding: 0 2px;
@@ -1078,6 +1109,41 @@
     </div>
   </div>
 
+  <!-- 入力フォームカード（ファイル選択後に表示） -->
+  <div class="study-card" id="progress-form-card" style="display:none">
+    <div class="study-card-label">✏️ 詳細を入力</div>
+    <div class="progress-form-file" id="progress-form-filename"></div>
+
+    <div class="progress-form-group">
+      <label class="progress-form-label">タイトル</label>
+      <input type="text" class="progress-form-input" id="progress-title-input" placeholder="例: 第3章 ポインタまとめ">
+    </div>
+
+    <div class="progress-form-group">
+      <label class="progress-form-label">タグ（複数選択可）</label>
+      <div class="progress-tag-picker" id="progress-tag-picker"></div>
+      <div class="progress-tag-add-row">
+        <input type="text" class="progress-tag-add-input" id="progress-tag-add-input" placeholder="新しいタグを追加…">
+        <button class="btn-ghost" id="progress-tag-add-btn" style="font-size:.78rem;padding:5px 10px">追加</button>
+      </div>
+    </div>
+
+    <div class="progress-form-group">
+      <label class="progress-form-label">科目</label>
+      <input type="text" class="progress-form-input" id="progress-subject-input" placeholder="例: C++, 基本情報技術者…">
+    </div>
+
+    <div class="progress-form-group">
+      <label class="progress-form-label">日付</label>
+      <input type="date" class="progress-form-input" id="progress-date-input">
+    </div>
+
+    <div class="progress-preview-actions">
+      <button class="btn-ghost" id="progress-form-back">← 戻る</button>
+      <button class="btn-primary" id="progress-form-confirm">確認 →</button>
+    </div>
+  </div>
+
   <!-- 記録一覧カード -->
   <div class="study-card">
     <div class="study-card-label">📋 記録一覧</div>
@@ -1273,7 +1339,10 @@ let studyLogs = loadStudyLogs();
 let materials = loadMaterials();
 let studyNotes    = loadStudyNotes();
 let progressLogs  = loadProgressLogs();
-let progressDraft = null; // { fileName, body, date } — ファイル読み込み後の一時データ
+let progressDraft        = null; // { fileName, body, date }
+const PROGRESS_DEFAULT_TAGS = ['C++', '基本情報', '復習', 'Siv3D', 'アルゴリズム'];
+let progressTagPool      = [...PROGRESS_DEFAULT_TAGS];
+let progressSelectedTags = [];
 let hideDone = false;
 let sortMode = '';
 const SORT_MODES  = ['', 'name', 'due'];
@@ -2152,9 +2221,79 @@ document.getElementById('progress-file-input').addEventListener('change', e => {
 
 document.getElementById('progress-file-cancel').addEventListener('click', hideProgressPreview);
 
-document.getElementById('progress-file-next').addEventListener('click', () => {
-  // Stage 3 でフォームを表示する（ここでは仮のメッセージ）
-  showToast('次のステップ（入力フォーム）は次のステージで実装します');
+document.getElementById('progress-file-next').addEventListener('click', showProgressForm);
+
+// ─── 進捗フォーム ───
+function showProgressForm() {
+  document.getElementById('progress-file-preview').style.display = 'none';
+  document.getElementById('progress-form-card').style.display = 'block';
+
+  // ファイル名表示
+  document.getElementById('progress-form-filename').textContent = '📄 ' + progressDraft.fileName;
+
+  // タイトル：拡張子なしのファイル名をデフォルトに
+  const baseName = progressDraft.fileName.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ');
+  document.getElementById('progress-title-input').value = baseName;
+
+  // 日付：YYYY/M/D → YYYY-MM-DD（date input形式）
+  const [y, m, d] = progressDraft.date.split('/');
+  document.getElementById('progress-date-input').value =
+    `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+
+  // タグ・科目をリセット
+  progressTagPool      = [...PROGRESS_DEFAULT_TAGS];
+  progressSelectedTags = [];
+  document.getElementById('progress-subject-input').value = '';
+  renderTagPicker();
+}
+
+function renderTagPicker() {
+  const picker = document.getElementById('progress-tag-picker');
+  picker.innerHTML = '';
+  progressTagPool.forEach(tag => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'progress-tag-pick-btn' + (progressSelectedTags.includes(tag) ? ' selected' : '');
+    btn.textContent = tag;
+    btn.addEventListener('click', () => {
+      if (progressSelectedTags.includes(tag)) {
+        progressSelectedTags = progressSelectedTags.filter(t => t !== tag);
+      } else {
+        progressSelectedTags.push(tag);
+      }
+      renderTagPicker();
+    });
+    picker.appendChild(btn);
+  });
+}
+
+function addProgressCustomTag() {
+  const input = document.getElementById('progress-tag-add-input');
+  const tag   = input.value.trim();
+  if (!tag) return;
+  if (!progressTagPool.includes(tag)) {
+    progressTagPool.push(tag);
+    progressSelectedTags.push(tag); // 追加と同時に選択
+  } else if (!progressSelectedTags.includes(tag)) {
+    progressSelectedTags.push(tag);
+  }
+  renderTagPicker();
+  input.value = '';
+}
+
+document.getElementById('progress-tag-add-btn').addEventListener('click', addProgressCustomTag);
+document.getElementById('progress-tag-add-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addProgressCustomTag(); }
+});
+
+document.getElementById('progress-form-back').addEventListener('click', () => {
+  document.getElementById('progress-form-card').style.display = 'none';
+  document.getElementById('progress-file-preview').style.display = 'block';
+});
+
+document.getElementById('progress-form-confirm').addEventListener('click', () => {
+  // Stage 4 で確認画面を実装
+  showToast('確認画面は次のステージで実装します');
 });
 
 document.getElementById('study-note-save').addEventListener('click', () => {
