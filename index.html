@@ -661,6 +661,47 @@
     justify-content: space-between;
     margin-bottom: 12px;
   }
+  .study-note-latest {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .study-note-latest-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .study-note-pin { font-size: .72rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; }
+  .study-note-date { font-size: .7rem; color: var(--text-muted); }
+  .study-note-text { font-size: .9rem; line-height: 1.6; white-space: pre-wrap; color: var(--text); }
+  .study-note-empty { font-size: .82rem; color: var(--text-muted); margin-bottom: 12px; }
+  .study-note-textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 6px;
+    padding: 9px 12px; font-size: .85rem; font-family: inherit;
+    background: var(--bg); color: var(--text); resize: vertical;
+    outline: none; box-sizing: border-box; min-height: 76px;
+  }
+  .study-note-textarea:focus { border-color: #999; }
+  .study-note-save-row { display: flex; justify-content: flex-end; margin-top: 8px; }
+  .study-note-hist-toggle {
+    background: none; border: none; font-size: .78rem; color: var(--text-muted);
+    cursor: pointer; padding: 8px 0 2px; display: flex; align-items: center;
+    gap: 4px; font-family: inherit; width: 100%;
+  }
+  .study-note-hist-toggle:hover { color: var(--text); }
+  .study-note-history { display: none; margin-top: 4px; }
+  .study-note-history.open { display: block; }
+  .study-note-hist-item {
+    border-top: 1px solid var(--border); padding: 8px 0;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .study-note-hist-date { font-size: .7rem; color: var(--text-muted); flex-shrink: 0; width: 58px; padding-top: 2px; }
+  .study-note-hist-text { font-size: .82rem; line-height: 1.5; white-space: pre-wrap; flex: 1; }
+  .study-note-hist-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: .9rem; flex-shrink: 0; opacity: 0; transition: opacity .15s; }
+  .study-note-hist-item:hover .study-note-hist-del { opacity: 1; }
 
   /* ─── レポート ─── */
   .report-overlay {
@@ -893,6 +934,20 @@
 <!-- 勉強タブ -->
 <div class="tab-content" id="tab-study">
 
+  <!-- 学習メモカード -->
+  <div class="study-card" id="study-note-card">
+    <div class="study-card-label">✏️ 学習メモ</div>
+    <div id="study-note-latest"></div>
+    <textarea class="study-note-textarea" id="study-note-input" placeholder="今日やったこと・次回の開始点を書いておく…"></textarea>
+    <div class="study-note-save-row">
+      <button class="btn-primary" id="study-note-save">メモを残す</button>
+    </div>
+    <button class="study-note-hist-toggle" id="study-note-hist-toggle">
+      <span>過去のメモ</span><span id="study-note-hist-arrow">▾</span>
+    </button>
+    <div class="study-note-history" id="study-note-history"></div>
+  </div>
+
   <!-- タイマーカード -->
   <div class="study-card">
     <div class="study-card-label">ストップウォッチ</div>
@@ -1025,7 +1080,7 @@ async function syncToFirestore() {
   setSyncStatus('syncing');
   try {
     await fbDb.doc(`braindump/${currentUser.uid}`).set(
-      { tasks, logs, studyLogs, collapsed, materials, updatedAt: Date.now() }
+      { tasks, logs, studyLogs, studyNotes, collapsed, materials, updatedAt: Date.now() }
     );
     setSyncStatus('synced');
   } catch(e) {
@@ -1043,14 +1098,15 @@ async function loadFromFirestore(uid) {
       if (Array.isArray(d.tasks))     { tasks     = d.tasks;     localStorage.setItem('bd_tasks',      JSON.stringify(tasks)); }
       if (Array.isArray(d.logs))      { logs       = d.logs;      localStorage.setItem('bd_logs',       JSON.stringify(logs)); }
       if (Array.isArray(d.studyLogs)) { studyLogs  = d.studyLogs; localStorage.setItem('bd_study_logs', JSON.stringify(studyLogs)); }
-      if (Array.isArray(d.materials)) { materials  = d.materials; localStorage.setItem('bd_materials',  JSON.stringify(materials)); }
+      if (Array.isArray(d.materials))   { materials   = d.materials;   localStorage.setItem('bd_materials',    JSON.stringify(materials)); }
+      if (Array.isArray(d.studyNotes))  { studyNotes  = d.studyNotes;  localStorage.setItem('bd_study_notes',  JSON.stringify(studyNotes)); }
       if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
     } else {
       // Firestore にデータなし → ローカルデータをアップロード
       const hasLocal = tasks.length > 0 || logs.length > 0 || studyLogs.length > 0;
       if (hasLocal) await syncToFirestore();
     }
-    render(); renderLogs(); renderStudyLogs(); renderMaterialSelector();
+    render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderMaterialSelector();
     setSyncStatus('synced');
   } catch(e) {
     console.error('Load error:', e);
@@ -1104,8 +1160,10 @@ function loadCollapsed() { try { return JSON.parse(localStorage.getItem('bd_coll
 function saveCollapsed() { localStorage.setItem('bd_collapsed',   JSON.stringify(collapsed)); scheduleSync(); }
 function loadStudyLogs()  { try { return JSON.parse(localStorage.getItem('bd_study_logs')  || '[]'); } catch { return []; } }
 function saveStudyLogs()  { localStorage.setItem('bd_study_logs',  JSON.stringify(studyLogs));  scheduleSync(); }
-function loadMaterials()  { try { return JSON.parse(localStorage.getItem('bd_materials')   || '[]'); } catch { return []; } }
+function loadMaterials()  { try { return JSON.parse(localStorage.getItem('bd_materials')    || '[]'); } catch { return []; } }
 function saveMaterials()  { localStorage.setItem('bd_materials',   JSON.stringify(materials));  scheduleSync(); }
+function loadStudyNotes() { try { return JSON.parse(localStorage.getItem('bd_study_notes') || '[]'); } catch { return []; } }
+function saveStudyNotes() { localStorage.setItem('bd_study_notes', JSON.stringify(studyNotes)); scheduleSync(); }
 
 // ─── 状態 ───
 let tasks = loadTasks();
@@ -1115,6 +1173,7 @@ let aiLoading = false;
 let searchQuery = '';
 let studyLogs = loadStudyLogs();
 let materials = loadMaterials();
+let studyNotes = loadStudyNotes();
 let hideDone = false;
 let sortMode = '';
 const SORT_MODES  = ['', 'name', 'due'];
@@ -1884,6 +1943,61 @@ function renderStudyLogs() {
 }
 
 renderStudyLogs();
+
+// ─── 学習メモ ───
+function renderStudyNotes() {
+  const latestEl  = document.getElementById('study-note-latest');
+  const historyEl = document.getElementById('study-note-history');
+  if (studyNotes.length === 0) {
+    latestEl.innerHTML = '<p class="study-note-empty">まだメモがありません。最初のメモを残してみよう。</p>';
+  } else {
+    const n = studyNotes[0];
+    latestEl.innerHTML = `
+      <div class="study-note-latest">
+        <div class="study-note-latest-header">
+          <span class="study-note-pin">📌 前回の続き</span>
+          <span class="study-note-date">${n.date}</span>
+        </div>
+        <div class="study-note-text">${escHtml(n.text).replace(/\n/g, '<br>')}</div>
+      </div>`;
+  }
+  historyEl.innerHTML = '';
+  studyNotes.slice(1).forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'study-note-hist-item';
+    el.innerHTML = `
+      <span class="study-note-hist-date">${n.date}</span>
+      <span class="study-note-hist-text">${escHtml(n.text).replace(/\n/g, '<br>')}</span>
+      <button class="study-note-hist-del" title="削除">×</button>`;
+    el.querySelector('.study-note-hist-del').addEventListener('click', () => {
+      studyNotes = studyNotes.filter(x => x.id !== n.id);
+      saveStudyNotes();
+      renderStudyNotes();
+    });
+    historyEl.appendChild(el);
+  });
+}
+renderStudyNotes();
+
+document.getElementById('study-note-save').addEventListener('click', () => {
+  const input = document.getElementById('study-note-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const now = new Date();
+  const date = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+  studyNotes.unshift({ id: Date.now().toString(), text, date, ts: Date.now() });
+  saveStudyNotes();
+  renderStudyNotes();
+  input.value = '';
+  showToast('メモを保存しました');
+});
+
+document.getElementById('study-note-hist-toggle').addEventListener('click', () => {
+  const h     = document.getElementById('study-note-history');
+  const arrow = document.getElementById('study-note-hist-arrow');
+  h.classList.toggle('open');
+  arrow.textContent = h.classList.contains('open') ? '▴' : '▾';
+});
 
 // ─── 教材管理 ───
 function renderMaterialSelector() {
