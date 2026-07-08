@@ -785,6 +785,24 @@
     background: var(--bg); color: var(--text); outline: none;
   }
   .progress-tag-add-input:focus { border-color: #999; }
+  .progress-confirm-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 9px 0; border-bottom: 1px solid var(--border); font-size: .84rem;
+  }
+  .progress-confirm-row:last-child { border-bottom: none; }
+  .progress-confirm-key {
+    width: 72px; flex-shrink: 0; color: var(--text-muted);
+    font-size: .7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .05em; padding-top: 3px;
+  }
+  .progress-confirm-val { flex: 1; line-height: 1.5; }
+  .progress-confirm-preview {
+    font-size: .75rem; line-height: 1.6; color: var(--text-muted);
+    white-space: pre-wrap; max-height: 120px; overflow-y: auto;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 10px;
+    font-family: "Courier New", monospace; margin-top: 8px;
+  }
   .progress-card-del {
     background: none; border: none; color: var(--text-muted); cursor: pointer;
     font-size: .85rem; flex-shrink: 0; opacity: 0; transition: opacity .15s; padding: 0 2px;
@@ -1141,6 +1159,16 @@
     <div class="progress-preview-actions">
       <button class="btn-ghost" id="progress-form-back">← 戻る</button>
       <button class="btn-primary" id="progress-form-confirm">確認 →</button>
+    </div>
+  </div>
+
+  <!-- 確認画面カード -->
+  <div class="study-card" id="progress-confirm-card" style="display:none">
+    <div class="study-card-label">✅ 確認</div>
+    <div id="progress-confirm-body"></div>
+    <div class="progress-preview-actions" style="margin-top:14px">
+      <button class="btn-ghost" id="progress-confirm-back">← 修正する</button>
+      <button class="btn-primary" id="progress-confirm-save">✓ 保存する</button>
     </div>
   </div>
 
@@ -2291,9 +2319,64 @@ document.getElementById('progress-form-back').addEventListener('click', () => {
   document.getElementById('progress-file-preview').style.display = 'block';
 });
 
-document.getElementById('progress-form-confirm').addEventListener('click', () => {
-  // Stage 4 で確認画面を実装
-  showToast('確認画面は次のステージで実装します');
+document.getElementById('progress-form-confirm').addEventListener('click', showProgressConfirm);
+
+function showProgressConfirm() {
+  const title   = document.getElementById('progress-title-input').value.trim();
+  const subject = document.getElementById('progress-subject-input').value.trim();
+  const dateRaw = document.getElementById('progress-date-input').value; // YYYY-MM-DD
+
+  if (!title) { showToast('タイトルを入力してください'); return; }
+  if (!dateRaw) { showToast('日付を入力してください'); return; }
+
+  const [y, m, d] = dateRaw.split('-');
+  progressDraft.title   = title;
+  progressDraft.subject = subject;
+  progressDraft.tags    = [...progressSelectedTags];
+  progressDraft.date    = `${y}/${parseInt(m)}/${parseInt(d)}`;
+
+  const tagsHtml = progressDraft.tags.length
+    ? progressDraft.tags.map(t => `<span class="progress-tag">${escHtml(t)}</span>`).join(' ')
+    : '<span style="color:var(--text-muted)">なし</span>';
+  const bodySnippet = progressDraft.body.slice(0, 300) + (progressDraft.body.length > 300 ? '\n…' : '');
+
+  document.getElementById('progress-confirm-body').innerHTML = `
+    <div class="progress-confirm-row">
+      <span class="progress-confirm-key">タイトル</span>
+      <span class="progress-confirm-val">${escHtml(progressDraft.title)}</span>
+    </div>
+    <div class="progress-confirm-row">
+      <span class="progress-confirm-key">タグ</span>
+      <span class="progress-confirm-val">${tagsHtml}</span>
+    </div>
+    <div class="progress-confirm-row">
+      <span class="progress-confirm-key">科目</span>
+      <span class="progress-confirm-val">${progressDraft.subject ? escHtml(progressDraft.subject) : '<span style="color:var(--text-muted)">なし</span>'}</span>
+    </div>
+    <div class="progress-confirm-row">
+      <span class="progress-confirm-key">日付</span>
+      <span class="progress-confirm-val">${progressDraft.date}</span>
+    </div>
+    <div class="progress-confirm-row">
+      <span class="progress-confirm-key">ファイル</span>
+      <span class="progress-confirm-val" style="font-size:.78rem;color:var(--text-muted)">${escHtml(progressDraft.fileName)}</span>
+    </div>
+    <div class="progress-confirm-row" style="flex-direction:column">
+      <span class="progress-confirm-key" style="width:auto;margin-bottom:0">本文プレビュー</span>
+      <div class="progress-confirm-preview">${escHtml(bodySnippet)}</div>
+    </div>`;
+
+  document.getElementById('progress-form-card').style.display    = 'none';
+  document.getElementById('progress-confirm-card').style.display = 'block';
+}
+
+document.getElementById('progress-confirm-back').addEventListener('click', () => {
+  document.getElementById('progress-confirm-card').style.display = 'none';
+  document.getElementById('progress-form-card').style.display    = 'block';
+});
+
+document.getElementById('progress-confirm-save').addEventListener('click', () => {
+  showToast('保存処理は次のステージで実装します');
 });
 
 document.getElementById('study-note-save').addEventListener('click', () => {
