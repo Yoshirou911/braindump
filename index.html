@@ -738,6 +738,22 @@
     white-space: pre-wrap; max-height: 300px; overflow-y: auto;
   }
   .progress-card.open .progress-body-preview { display: block; }
+  .progress-preview-meta {
+    display: flex; align-items: center; gap: 12px;
+    margin: 12px 0 8px; font-size: .78rem;
+  }
+  .progress-preview-filename { font-weight: 600; color: var(--text); }
+  .progress-preview-date { color: var(--text-muted); }
+  .progress-preview-body {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px;
+    font-size: .76rem; line-height: 1.6; color: var(--text-muted);
+    white-space: pre-wrap; max-height: 160px; overflow-y: auto;
+    font-family: "Courier New", monospace;
+  }
+  .progress-preview-actions {
+    display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;
+  }
   .progress-card-del {
     background: none; border: none; color: var(--text-muted); cursor: pointer;
     font-size: .85rem; flex-shrink: 0; opacity: 0; transition: opacity .15s; padding: 0 2px;
@@ -1041,11 +1057,25 @@
   <!-- ファイル読み込みカード -->
   <div class="study-card" id="progress-upload-card">
     <div class="study-card-label">📂 進捗ファイルを読み込む</div>
-    <p class="progress-upload-hint">.md / .txt ファイルを選択すると、内容を自動で取り込みます</p>
-    <label class="progress-upload-btn" id="progress-upload-label">
-      ファイルを選択
-      <input type="file" id="progress-file-input" accept=".md,.txt" style="display:none">
-    </label>
+    <div id="progress-select-area">
+      <p class="progress-upload-hint">.md / .txt ファイルを選択すると、内容を自動で取り込みます</p>
+      <label class="progress-upload-btn" id="progress-upload-label">
+        ファイルを選択
+        <input type="file" id="progress-file-input" accept=".md,.txt" style="display:none">
+      </label>
+    </div>
+    <!-- ファイル選択後のプレビュー -->
+    <div id="progress-file-preview" style="display:none">
+      <div class="progress-preview-meta">
+        <span class="progress-preview-filename" id="progress-preview-filename"></span>
+        <span class="progress-preview-date" id="progress-preview-date"></span>
+      </div>
+      <div class="progress-preview-body" id="progress-preview-body"></div>
+      <div class="progress-preview-actions">
+        <button class="btn-ghost" id="progress-file-cancel">やり直す</button>
+        <button class="btn-primary" id="progress-file-next">次へ →</button>
+      </div>
+    </div>
   </div>
 
   <!-- 記録一覧カード -->
@@ -1243,6 +1273,7 @@ let studyLogs = loadStudyLogs();
 let materials = loadMaterials();
 let studyNotes    = loadStudyNotes();
 let progressLogs  = loadProgressLogs();
+let progressDraft = null; // { fileName, body, date } — ファイル読み込み後の一時データ
 let hideDone = false;
 let sortMode = '';
 const SORT_MODES  = ['', 'name', 'due'];
@@ -2087,6 +2118,44 @@ function renderProgressList() {
   });
 }
 renderProgressList();
+
+// ─── 進捗ファイル読み込み ───
+function showProgressPreview() {
+  document.getElementById('progress-select-area').style.display = 'none';
+  const preview = document.getElementById('progress-file-preview');
+  preview.style.display = 'block';
+  document.getElementById('progress-preview-filename').textContent = '📄 ' + progressDraft.fileName;
+  document.getElementById('progress-preview-date').textContent    = '📅 ' + progressDraft.date;
+  const snippet = progressDraft.body.slice(0, 400) + (progressDraft.body.length > 400 ? '\n…' : '');
+  document.getElementById('progress-preview-body').textContent = snippet;
+}
+
+function hideProgressPreview() {
+  document.getElementById('progress-select-area').style.display = '';
+  document.getElementById('progress-file-preview').style.display = 'none';
+  progressDraft = null;
+}
+
+document.getElementById('progress-file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const now  = new Date();
+    const date = `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()}`;
+    progressDraft = { fileName: file.name, body: ev.target.result, date };
+    showProgressPreview();
+  };
+  reader.readAsText(file, 'utf-8');
+  e.target.value = ''; // 同じファイルを再選択できるようにリセット
+});
+
+document.getElementById('progress-file-cancel').addEventListener('click', hideProgressPreview);
+
+document.getElementById('progress-file-next').addEventListener('click', () => {
+  // Stage 3 でフォームを表示する（ここでは仮のメッセージ）
+  showToast('次のステップ（入力フォーム）は次のステージで実装します');
+});
 
 document.getElementById('study-note-save').addEventListener('click', () => {
   const input = document.getElementById('study-note-input');
