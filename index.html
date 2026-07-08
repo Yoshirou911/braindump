@@ -703,6 +703,47 @@
   .study-note-hist-del { background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: .9rem; flex-shrink: 0; opacity: 0; transition: opacity .15s; }
   .study-note-hist-item:hover .study-note-hist-del { opacity: 1; }
 
+  /* ─── 進捗タブ ─── */
+  .progress-upload-hint {
+    font-size: .8rem; color: var(--text-muted); margin-bottom: 12px;
+  }
+  .progress-upload-btn {
+    display: inline-block; padding: 8px 18px;
+    border: 1.5px dashed var(--border); border-radius: var(--radius);
+    font-size: .85rem; color: var(--text-muted); cursor: pointer;
+    transition: border-color .15s, color .15s;
+  }
+  .progress-upload-btn:hover { border-color: var(--text); color: var(--text); }
+  .progress-empty { font-size: .82rem; color: var(--text-muted); }
+  .progress-card {
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; background: var(--bg);
+    margin-bottom: 8px; cursor: pointer; transition: border-color .15s;
+  }
+  .progress-card:hover { border-color: #bbb; }
+  .progress-card-header { display: flex; align-items: flex-start; gap: 8px; }
+  .progress-card-title { font-size: .88rem; font-weight: 600; flex: 1; }
+  .progress-card-date { font-size: .7rem; color: var(--text-muted); flex-shrink: 0; padding-top: 2px; }
+  .progress-card-meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+  .progress-tag {
+    font-size: .68rem; padding: 2px 7px; border-radius: 10px;
+    background: var(--border); color: var(--text-muted); font-weight: 600;
+  }
+  .progress-subject { font-size: .7rem; color: var(--text-muted); }
+  .progress-filename { font-size: .68rem; color: var(--text-muted); margin-left: auto; }
+  .progress-body-preview {
+    font-size: .78rem; color: var(--text-muted); margin-top: 8px;
+    line-height: 1.5; display: none;
+    border-top: 1px solid var(--border); padding-top: 8px;
+    white-space: pre-wrap; max-height: 300px; overflow-y: auto;
+  }
+  .progress-card.open .progress-body-preview { display: block; }
+  .progress-card-del {
+    background: none; border: none; color: var(--text-muted); cursor: pointer;
+    font-size: .85rem; flex-shrink: 0; opacity: 0; transition: opacity .15s; padding: 0 2px;
+  }
+  .progress-card:hover .progress-card-del { opacity: 1; }
+
   /* ─── レポート ─── */
   .report-overlay {
     position: fixed; inset: 0;
@@ -855,6 +896,7 @@
 <div class="tab-bar">
   <button class="tab-btn active" data-tab="task">タスク</button>
   <button class="tab-btn" data-tab="study">勉強</button>
+  <button class="tab-btn" data-tab="progress">進捗</button>
 </div>
 
 <!-- タスクタブ -->
@@ -993,6 +1035,29 @@
 
 </div><!-- /tab-study -->
 
+<!-- 進捗タブ -->
+<div class="tab-content" id="tab-progress">
+
+  <!-- ファイル読み込みカード -->
+  <div class="study-card" id="progress-upload-card">
+    <div class="study-card-label">📂 進捗ファイルを読み込む</div>
+    <p class="progress-upload-hint">.md / .txt ファイルを選択すると、内容を自動で取り込みます</p>
+    <label class="progress-upload-btn" id="progress-upload-label">
+      ファイルを選択
+      <input type="file" id="progress-file-input" accept=".md,.txt" style="display:none">
+    </label>
+  </div>
+
+  <!-- 記録一覧カード -->
+  <div class="study-card">
+    <div class="study-card-label">📋 記録一覧</div>
+    <div id="progress-list">
+      <p class="progress-empty">まだ記録がありません</p>
+    </div>
+  </div>
+
+</div><!-- /tab-progress -->
+
 <!-- 週次レビューモーダル -->
 <div class="review-overlay" id="review-modal" style="display:none">
   <div class="review-box">
@@ -1080,7 +1145,7 @@ async function syncToFirestore() {
   setSyncStatus('syncing');
   try {
     await fbDb.doc(`braindump/${currentUser.uid}`).set(
-      { tasks, logs, studyLogs, studyNotes, collapsed, materials, updatedAt: Date.now() }
+      { tasks, logs, studyLogs, studyNotes, progressLogs, collapsed, materials, updatedAt: Date.now() }
     );
     setSyncStatus('synced');
   } catch(e) {
@@ -1099,14 +1164,15 @@ async function loadFromFirestore(uid) {
       if (Array.isArray(d.logs))      { logs       = d.logs;      localStorage.setItem('bd_logs',       JSON.stringify(logs)); }
       if (Array.isArray(d.studyLogs)) { studyLogs  = d.studyLogs; localStorage.setItem('bd_study_logs', JSON.stringify(studyLogs)); }
       if (Array.isArray(d.materials))   { materials   = d.materials;   localStorage.setItem('bd_materials',    JSON.stringify(materials)); }
-      if (Array.isArray(d.studyNotes))  { studyNotes  = d.studyNotes;  localStorage.setItem('bd_study_notes',  JSON.stringify(studyNotes)); }
+      if (Array.isArray(d.studyNotes))   { studyNotes   = d.studyNotes;   localStorage.setItem('bd_study_notes', JSON.stringify(studyNotes)); }
+      if (Array.isArray(d.progressLogs)) { progressLogs = d.progressLogs; localStorage.setItem('bd_progress',    JSON.stringify(progressLogs)); }
       if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
     } else {
       // Firestore にデータなし → ローカルデータをアップロード
       const hasLocal = tasks.length > 0 || logs.length > 0 || studyLogs.length > 0;
       if (hasLocal) await syncToFirestore();
     }
-    render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderMaterialSelector();
+    render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderProgressList(); renderMaterialSelector();
     setSyncStatus('synced');
   } catch(e) {
     console.error('Load error:', e);
@@ -1162,8 +1228,10 @@ function loadStudyLogs()  { try { return JSON.parse(localStorage.getItem('bd_stu
 function saveStudyLogs()  { localStorage.setItem('bd_study_logs',  JSON.stringify(studyLogs));  scheduleSync(); }
 function loadMaterials()  { try { return JSON.parse(localStorage.getItem('bd_materials')    || '[]'); } catch { return []; } }
 function saveMaterials()  { localStorage.setItem('bd_materials',   JSON.stringify(materials));  scheduleSync(); }
-function loadStudyNotes() { try { return JSON.parse(localStorage.getItem('bd_study_notes') || '[]'); } catch { return []; } }
-function saveStudyNotes() { localStorage.setItem('bd_study_notes', JSON.stringify(studyNotes)); scheduleSync(); }
+function loadStudyNotes()    { try { return JSON.parse(localStorage.getItem('bd_study_notes')   || '[]'); } catch { return []; } }
+function saveStudyNotes()    { localStorage.setItem('bd_study_notes',   JSON.stringify(studyNotes));   scheduleSync(); }
+function loadProgressLogs()  { try { return JSON.parse(localStorage.getItem('bd_progress')      || '[]'); } catch { return []; } }
+function saveProgressLogs()  { localStorage.setItem('bd_progress',      JSON.stringify(progressLogs)); scheduleSync(); }
 
 // ─── 状態 ───
 let tasks = loadTasks();
@@ -1173,7 +1241,8 @@ let aiLoading = false;
 let searchQuery = '';
 let studyLogs = loadStudyLogs();
 let materials = loadMaterials();
-let studyNotes = loadStudyNotes();
+let studyNotes    = loadStudyNotes();
+let progressLogs  = loadProgressLogs();
 let hideDone = false;
 let sortMode = '';
 const SORT_MODES  = ['', 'name', 'due'];
@@ -1978,6 +2047,46 @@ function renderStudyNotes() {
   });
 }
 renderStudyNotes();
+
+// ─── 進捗一覧 ───
+function renderProgressList() {
+  const container = document.getElementById('progress-list');
+  if (!container) return;
+  if (progressLogs.length === 0) {
+    container.innerHTML = '<p class="progress-empty">まだ記録がありません</p>';
+    return;
+  }
+  container.innerHTML = '';
+  [...progressLogs].sort((a, b) => b.ts - a.ts).forEach(entry => {
+    const el = document.createElement('div');
+    el.className = 'progress-card';
+    const tagsHtml = (entry.tags || []).map(t => `<span class="progress-tag">${escHtml(t)}</span>`).join('');
+    el.innerHTML = `
+      <div class="progress-card-header">
+        <span class="progress-card-title">${escHtml(entry.title || '（タイトルなし）')}</span>
+        <span class="progress-card-date">${entry.date}</span>
+        <button class="progress-card-del" title="削除">×</button>
+      </div>
+      <div class="progress-card-meta">
+        ${tagsHtml}
+        ${entry.subject ? `<span class="progress-subject">📚 ${escHtml(entry.subject)}</span>` : ''}
+        ${entry.fileName ? `<span class="progress-filename">📄 ${escHtml(entry.fileName)}</span>` : ''}
+      </div>
+      <div class="progress-body-preview">${escHtml(entry.body || '')}</div>`;
+    el.addEventListener('click', e => {
+      if (e.target.classList.contains('progress-card-del')) return;
+      el.classList.toggle('open');
+    });
+    el.querySelector('.progress-card-del').addEventListener('click', e => {
+      e.stopPropagation();
+      progressLogs = progressLogs.filter(x => x.id !== entry.id);
+      saveProgressLogs();
+      renderProgressList();
+    });
+    container.appendChild(el);
+  });
+}
+renderProgressList();
 
 document.getElementById('study-note-save').addEventListener('click', () => {
   const input = document.getElementById('study-note-input');
