@@ -614,6 +614,54 @@
   }
   .study-log-entry:hover .study-log-del { opacity: 1; }
 
+  /* ─── タブバー ─── */
+  .tab-bar {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 18px;
+  }
+  .tab-btn {
+    padding: 9px 22px;
+    background: none;
+    border: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: inherit;
+    transition: color .15s;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ─── 勉強タブ ─── */
+  .study-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  .study-card-label {
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    margin-bottom: 12px;
+  }
+  .study-total-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
   /* ─── レポート ─── */
   .report-overlay {
     position: fixed; inset: 0;
@@ -762,6 +810,15 @@
 </div>
 <p class="subtitle">頭の中を全部書き出して、整理して、空にする。</p>
 
+<!-- タブバー -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="task">タスク</button>
+  <button class="tab-btn" data-tab="study">勉強</button>
+</div>
+
+<!-- タスクタブ -->
+<div class="tab-content active" id="tab-task">
+
 <!-- ツールバー -->
 <div class="toolbar">
   <button class="btn-tool" id="hide-done-btn">完了を隠す</button>
@@ -831,6 +888,56 @@
   </div>
 </div>
 
+</div><!-- /tab-task -->
+
+<!-- 勉強タブ -->
+<div class="tab-content" id="tab-study">
+
+  <!-- タイマーカード -->
+  <div class="study-card">
+    <div class="study-card-label">ストップウォッチ</div>
+    <div class="timer-display" id="timer-display">00:00:00</div>
+    <div class="timer-controls">
+      <button class="btn-primary" id="timer-start">スタート</button>
+      <button class="btn-ghost" id="timer-reset">リセット</button>
+    </div>
+  </div>
+
+  <!-- 記録カード -->
+  <div class="study-card">
+    <div class="study-card-label">記録する</div>
+    <div class="timer-material-row">
+      <select id="timer-material" class="timer-material-select">
+        <option value="">教材を選択（任意）</option>
+      </select>
+      <button class="btn-ghost" id="material-manage-btn" style="font-size:.78rem;padding:5px 10px;white-space:nowrap">教材管理</button>
+    </div>
+    <div class="timer-manual-row">
+      <span>記録する時間:</span>
+      <input type="number" id="timer-h" class="timer-hm-input" min="0" max="23" value="0">
+      <span class="timer-hm-sep">h</span>
+      <input type="number" id="timer-m" class="timer-hm-input" min="0" max="59" value="0">
+      <span class="timer-hm-sep">m</span>
+      <input type="number" id="timer-s" class="timer-hm-input" min="0" max="59" value="0">
+      <span class="timer-hm-sep">s</span>
+    </div>
+    <div class="timer-record-row">
+      <input type="text" class="timer-subject" id="timer-subject" placeholder="科目・内容（任意）">
+      <button class="btn-primary" id="timer-save" disabled>記録する</button>
+    </div>
+  </div>
+
+  <!-- ログカード -->
+  <div class="study-card">
+    <div class="study-total-row">
+      <div class="study-total" id="study-total" style="margin:0">今日の合計: 00:00:00</div>
+      <button class="btn-ghost" id="report-open-btn" style="font-size:.78rem;padding:5px 12px">📊 レポート</button>
+    </div>
+    <div class="study-log-entries" id="study-log-entries"></div>
+  </div>
+
+</div><!-- /tab-study -->
+
 <!-- 週次レビューモーダル -->
 <div class="review-overlay" id="review-modal" style="display:none">
   <div class="review-box">
@@ -882,44 +989,6 @@
     <div class="material-divider"></div>
     <p class="material-section-label">マイ教材</p>
     <div class="my-material-list" id="my-material-list"></div>
-  </div>
-</div>
-
-<!-- 勉強タイマー -->
-<div class="study-section" id="study-section">
-  <div class="study-header" id="study-header">
-    <span>⏱</span>
-    <span class="study-title">勉強タイマー</span>
-    <button class="btn-ghost" id="report-open-btn" style="font-size:.75rem;padding:3px 10px;margin-left:auto;margin-right:6px" onclick="event.stopPropagation()">📊 レポート</button>
-    <span class="study-toggle">▾</span>
-  </div>
-  <div class="study-body">
-    <div class="timer-display" id="timer-display">00:00:00</div>
-    <div class="timer-controls">
-      <button class="btn-primary" id="timer-start">スタート</button>
-      <button class="btn-ghost" id="timer-reset">リセット</button>
-    </div>
-    <div class="timer-material-row">
-      <select id="timer-material" class="timer-material-select">
-        <option value="">教材を選択（任意）</option>
-      </select>
-      <button class="btn-ghost" id="material-manage-btn" style="font-size:.78rem;padding:5px 10px;white-space:nowrap">教材管理</button>
-    </div>
-    <div class="timer-manual-row">
-      <span>記録する時間:</span>
-      <input type="number" id="timer-h" class="timer-hm-input" min="0" max="23" value="0">
-      <span class="timer-hm-sep">h</span>
-      <input type="number" id="timer-m" class="timer-hm-input" min="0" max="59" value="0">
-      <span class="timer-hm-sep">m</span>
-      <input type="number" id="timer-s" class="timer-hm-input" min="0" max="59" value="0">
-      <span class="timer-hm-sep">s</span>
-    </div>
-    <div class="timer-record-row">
-      <input type="text" class="timer-subject" id="timer-subject" placeholder="科目・内容（任意）">
-      <button class="btn-primary" id="timer-save" disabled>記録する</button>
-    </div>
-    <div class="study-total" id="study-total">今日の合計: 00:00:00</div>
-    <div class="study-log-entries" id="study-log-entries"></div>
   </div>
 </div>
 
@@ -1675,9 +1744,16 @@ function closeReview() {
 }
 
 // ─── 勉強タイマー ───
-document.getElementById('study-header').addEventListener('click', () => {
-  document.getElementById('study-section').classList.toggle('open');
+// ─── タブ切り替え ───
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
 });
+
 
 let studyRunning = false;
 let studyStart = null;
