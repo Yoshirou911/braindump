@@ -978,14 +978,36 @@
   .study-log-material { display: flex; align-items: center; gap: 4px; margin-top: 2px; }
   .study-log-mat-thumb { width: 14px; height: 20px; object-fit: cover; border-radius: 1px; flex-shrink: 0; }
   .study-log-mat-name { font-size: .7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ─── バックアップモーダル ─── */
+  .backup-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 200; padding: 16px;
+  }
+  .backup-box {
+    background: var(--surface); border-radius: 12px; padding: 20px;
+    width: 420px; max-width: 100%; max-height: 80vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  }
+  .backup-item {
+    display: flex; align-items: center; gap: 8px;
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 10px; background: var(--bg);
+  }
 </style>
 </head>
 <body>
 
 <div class="page-header">
   <h1>ブレインダンプ</h1>
+  <div style="display:flex;align-items:center;gap:6px">
+  <button class="btn-ghost" id="backup-open-btn" title="バックアップ" style="font-size:.8rem;padding:4px 9px">🗄️</button>
   <div class="auth-ui" id="auth-ui">
     <button class="btn-ghost" id="login-btn" style="font-size:.78rem;padding:5px 10px">Googleでログイン</button>
+  </div>
   </div>
 </div>
 <p class="subtitle">頭の中を全部書き出して、整理して、空にする。</p>
@@ -1318,6 +1340,22 @@
     <div class="material-divider"></div>
     <p class="material-section-label">マイ教材</p>
     <div class="my-material-list" id="my-material-list"></div>
+  </div>
+</div>
+
+<!-- バックアップモーダル -->
+<div class="backup-overlay" id="backup-modal" style="display:none">
+  <div class="backup-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h3 style="margin:0;font-size:1rem">🗄️ バックアップ</h3>
+      <button class="btn-ghost" id="backup-close-btn" style="font-size:.9rem;padding:4px 8px">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn-primary" id="backup-create-btn" style="flex:1;font-size:.82rem">手動バックアップを作成</button>
+      <button class="btn-ghost" id="backup-dl-all-btn" style="font-size:.82rem">一括DL</button>
+    </div>
+    <div id="backup-list" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+    <p style="font-size:.72rem;color:var(--text-muted);margin-top:10px;margin-bottom:0">最大10件保持。古い自動バックアップから自動削除。</p>
   </div>
 </div>
 
@@ -3029,6 +3067,141 @@ document.querySelectorAll('.range-btn').forEach(btn => {
     renderReport();
   });
 });
+
+// ─── バックアップ ───
+const BACKUP_KEY = 'bd_backups';
+const BACKUP_MAX = 10;
+
+function loadBackups() {
+  try { return JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]'); } catch { return []; }
+}
+function saveBackupsToStorage(list) {
+  localStorage.setItem(BACKUP_KEY, JSON.stringify(list));
+}
+function trimBackups(list) {
+  while (list.length > BACKUP_MAX) {
+    let idx = -1;
+    for (let i = list.length - 1; i >= 0; i--) {
+      if (list[i].type === 'auto') { idx = i; break; }
+    }
+    list.splice(idx !== -1 ? idx : list.length - 1, 1);
+  }
+}
+function snapshotData() {
+  return { tasks, logs, studyLogs, studyNotes, progressLogs, roadmaps, materials };
+}
+function createBackup(name) {
+  const list = loadBackups();
+  const now = new Date();
+  const label = name || ('手動 ' + (now.getMonth()+1) + '/' + now.getDate() + ' ' +
+    String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
+  list.unshift({ id: Date.now().toString(), name: label, ts: Date.now(), type: 'manual', data: snapshotData() });
+  trimBackups(list);
+  saveBackupsToStorage(list);
+  renderBackupList();
+  showToast('バックアップを作成しました');
+}
+function doAutoBackup() {
+  const list = loadBackups();
+  const now = new Date();
+  const label = '自動 ' + (now.getMonth()+1) + '/' + now.getDate();
+  list.unshift({ id: Date.now().toString(), name: label, ts: Date.now(), type: 'auto', data: snapshotData() });
+  trimBackups(list);
+  saveBackupsToStorage(list);
+}
+function checkAutoBackup() {
+  const today = new Date().toDateString();
+  if (localStorage.getItem('bd_last_auto_backup') !== today) {
+    doAutoBackup();
+    localStorage.setItem('bd_last_auto_backup', today);
+  }
+}
+function restoreBackup(entry) {
+  if (!confirm('「' + entry.name + '」から復元しますか？\n現在のデータは上書きされます。')) return;
+  const d = entry.data;
+  if (Array.isArray(d.tasks))       { tasks = d.tasks;             localStorage.setItem('bd_tasks',       JSON.stringify(tasks)); }
+  if (Array.isArray(d.logs))        { logs  = d.logs;              localStorage.setItem('bd_logs',        JSON.stringify(logs)); }
+  if (Array.isArray(d.studyLogs))   { studyLogs = d.studyLogs;     localStorage.setItem('bd_study_logs',  JSON.stringify(studyLogs)); }
+  if (d.studyNotes !== undefined)   { studyNotes = d.studyNotes;   localStorage.setItem('bd_study_notes', JSON.stringify(studyNotes)); }
+  if (Array.isArray(d.progressLogs)){ progressLogs = d.progressLogs; localStorage.setItem('bd_progress',  JSON.stringify(progressLogs)); }
+  if (Array.isArray(d.roadmaps))    { roadmaps = d.roadmaps;       localStorage.setItem('bd_roadmaps',   JSON.stringify(roadmaps)); }
+  if (Array.isArray(d.materials))   { materials = d.materials;     localStorage.setItem('bd_materials',  JSON.stringify(materials)); }
+  scheduleSync();
+  render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderProgressList(); renderRoadmapList(); renderMaterialSelector();
+  showToast('復元しました');
+  document.getElementById('backup-modal').style.display = 'none';
+}
+function downloadBackup(entry) {
+  const blob = new Blob([JSON.stringify(entry, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'braindump_backup_' + entry.ts + '.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+function deleteBackup(id) {
+  const list = loadBackups().filter(b => b.id !== id);
+  saveBackupsToStorage(list);
+  renderBackupList();
+}
+function renderBackupList() {
+  const list = loadBackups();
+  const el = document.getElementById('backup-list');
+  if (!el) return;
+  if (list.length === 0) {
+    el.innerHTML = '<p style="font-size:.8rem;color:var(--text-muted);text-align:center;padding:20px 0">バックアップがありません</p>';
+    return;
+  }
+  el.innerHTML = list.map((b, i) => {
+    const dt = new Date(b.ts);
+    const label = (dt.getMonth()+1) + '/' + dt.getDate() + ' ' +
+      String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+    const badge = b.type === 'auto' ? '🔄 自動' : '✋ 手動';
+    return '<div class="backup-item" data-idx="' + i + '">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:.82rem;font-weight:600">' + b.name + '</div>' +
+        '<div style="font-size:.72rem;color:var(--text-muted)">' + label + ' ' + badge + '</div>' +
+      '</div>' +
+      '<div style="display:flex;gap:4px;flex-shrink:0">' +
+        '<button class="btn-ghost" style="font-size:.72rem;padding:3px 7px" data-action="restore" data-idx="' + i + '">復元</button>' +
+        '<button class="btn-ghost" style="font-size:.72rem;padding:3px 7px" data-action="dl" data-idx="' + i + '">DL</button>' +
+        '<button class="btn-ghost" style="font-size:.72rem;padding:3px 7px;color:var(--text-muted)" data-action="del" data-id="' + b.id + '">✕</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+document.getElementById('backup-open-btn').addEventListener('click', () => {
+  renderBackupList();
+  document.getElementById('backup-modal').style.display = 'flex';
+});
+document.getElementById('backup-close-btn').addEventListener('click', () => {
+  document.getElementById('backup-modal').style.display = 'none';
+});
+document.getElementById('backup-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('backup-modal'))
+    document.getElementById('backup-modal').style.display = 'none';
+});
+document.getElementById('backup-create-btn').addEventListener('click', () => createBackup());
+document.getElementById('backup-dl-all-btn').addEventListener('click', () => {
+  const list = loadBackups();
+  if (list.length === 0) { showToast('バックアップがありません'); return; }
+  const blob = new Blob([JSON.stringify({ exportedAt: Date.now(), backups: list }, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url;
+  a.download = 'braindump_all_backups_' + Date.now() + '.json'; a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById('backup-list').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const list = loadBackups();
+  const action = btn.dataset.action;
+  if (action === 'restore') restoreBackup(list[+btn.dataset.idx]);
+  else if (action === 'dl') downloadBackup(list[+btn.dataset.idx]);
+  else if (action === 'del') deleteBackup(btn.dataset.id);
+});
+
+checkAutoBackup();
 </script>
 </body>
 </html>
