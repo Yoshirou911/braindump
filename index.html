@@ -1341,10 +1341,14 @@ firebase.initializeApp({
 const fbAuth = firebase.auth();
 const fbDb   = firebase.firestore();
 const googleProvider = new firebase.auth.GoogleAuthProvider();
-let currentUser = null;
-let syncTimer   = null;
+let currentUser    = null;
+let syncTimer      = null;
+let localUpdatedAt = parseInt(localStorage.getItem('bd_local_updated_at') || '0');
 
 function scheduleSync() {
+  // 変更した瞬間にローカルタイムスタンプを更新（リロードされても「ローカルが新しい」と判定できる）
+  localUpdatedAt = Date.now();
+  localStorage.setItem('bd_local_updated_at', localUpdatedAt.toString());
   clearTimeout(syncTimer);
   syncTimer = setTimeout(syncToFirestore, 1500);
 }
@@ -1369,14 +1373,25 @@ async function loadFromFirestore(uid) {
     const snap = await fbDb.doc(`braindump/${uid}`).get();
     if (snap.exists) {
       const d = snap.data();
-      if (Array.isArray(d.tasks))     { tasks     = d.tasks;     localStorage.setItem('bd_tasks',      JSON.stringify(tasks)); }
-      if (Array.isArray(d.logs))      { logs       = d.logs;      localStorage.setItem('bd_logs',       JSON.stringify(logs)); }
-      if (Array.isArray(d.studyLogs)) { studyLogs  = d.studyLogs; localStorage.setItem('bd_study_logs', JSON.stringify(studyLogs)); }
-      if (Array.isArray(d.materials))   { materials   = d.materials;   localStorage.setItem('bd_materials',    JSON.stringify(materials)); }
-      if (Array.isArray(d.studyNotes))   { studyNotes   = d.studyNotes;   localStorage.setItem('bd_study_notes', JSON.stringify(studyNotes)); }
-      if (Array.isArray(d.progressLogs)) { progressLogs = d.progressLogs; localStorage.setItem('bd_progress',    JSON.stringify(progressLogs)); }
-      if (Array.isArray(d.roadmaps))     { roadmaps     = d.roadmaps;     localStorage.setItem('bd_roadmaps',    JSON.stringify(roadmaps)); }
-      if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
+      const firestoreTs = d.updatedAt || 0;
+
+      if (firestoreTs > localUpdatedAt) {
+        // Firestoreが新しい → ローカルを上書き
+        if (Array.isArray(d.tasks))        { tasks        = d.tasks;        localStorage.setItem('bd_tasks',        JSON.stringify(tasks)); }
+        if (Array.isArray(d.logs))         { logs         = d.logs;         localStorage.setItem('bd_logs',         JSON.stringify(logs)); }
+        if (Array.isArray(d.studyLogs))    { studyLogs    = d.studyLogs;    localStorage.setItem('bd_study_logs',   JSON.stringify(studyLogs)); }
+        if (Array.isArray(d.materials))    { materials    = d.materials;    localStorage.setItem('bd_materials',    JSON.stringify(materials)); }
+        if (Array.isArray(d.studyNotes))   { studyNotes   = d.studyNotes;   localStorage.setItem('bd_study_notes',  JSON.stringify(studyNotes)); }
+        if (Array.isArray(d.progressLogs)) { progressLogs = d.progressLogs; localStorage.setItem('bd_progress',     JSON.stringify(progressLogs)); }
+        if (Array.isArray(d.roadmaps))     { roadmaps     = d.roadmaps;     localStorage.setItem('bd_roadmaps',     JSON.stringify(roadmaps)); }
+        if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
+        // ローカルタイムスタンプをFirestoreに合わせる
+        localUpdatedAt = firestoreTs;
+        localStorage.setItem('bd_local_updated_at', localUpdatedAt.toString());
+      } else {
+        // ローカルが新しい（未同期の変更あり）→ Firestoreに上書きアップロード
+        await syncToFirestore();
+      }
     } else {
       // Firestore にデータなし → ローカルデータをアップロード
       const hasLocal = tasks.length > 0 || logs.length > 0 || studyLogs.length > 0
