@@ -1379,7 +1379,8 @@ async function loadFromFirestore(uid) {
       if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
     } else {
       // Firestore にデータなし → ローカルデータをアップロード
-      const hasLocal = tasks.length > 0 || logs.length > 0 || studyLogs.length > 0;
+      const hasLocal = tasks.length > 0 || logs.length > 0 || studyLogs.length > 0
+                    || studyNotes.length > 0 || progressLogs.length > 0 || roadmaps.length > 0;
       if (hasLocal) await syncToFirestore();
     }
     render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderProgressList(); renderRoadmapList(); renderMaterialSelector();
