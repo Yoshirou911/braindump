@@ -979,6 +979,75 @@
   .study-log-mat-thumb { width: 14px; height: 20px; object-fit: cover; border-radius: 1px; flex-shrink: 0; }
   .study-log-mat-name { font-size: .7rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+  /* ─── カレンダー ─── */
+  .cal-header { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; }
+  .cal-title { font-size: 1rem; font-weight: 700; flex: 1; text-align: center; }
+  .cal-nav { font-size: 1.3rem; padding: 3px 10px; line-height: 1; }
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7, 1fr);
+    gap: 1px; background: var(--border);
+    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  }
+  .cal-label {
+    background: var(--bg); text-align: center; font-size: .72rem;
+    color: var(--text-muted); padding: 6px 0; font-weight: 600;
+  }
+  .cal-label.sun { color: #e05252; }
+  .cal-label.sat { color: #4a9eda; }
+  .cal-cell {
+    background: var(--surface); min-height: 68px; padding: 4px 3px;
+    cursor: pointer; transition: background .12s; overflow: hidden;
+  }
+  .cal-cell:hover { background: var(--bg); }
+  .cal-cell.other-month { background: var(--bg); }
+  .cal-cell.other-month .cal-day-num { color: var(--text-muted); opacity: .5; }
+  .cal-day-num {
+    font-size: .75rem; width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin-bottom: 2px;
+  }
+  .cal-cell.today .cal-day-num { background: var(--text); color: var(--surface); font-weight: 700; }
+  .cal-cell.selected { background: color-mix(in srgb, var(--text) 7%, var(--surface)); }
+  .cal-cell.sun .cal-day-num { color: #e05252; }
+  .cal-cell.sat .cal-day-num { color: #4a9eda; }
+  .cal-cell.today .cal-day-num { color: var(--surface); }
+  .cal-chips { display: flex; flex-direction: column; gap: 2px; }
+  .cal-chip {
+    font-size: .6rem; padding: 1px 4px; border-radius: 3px;
+    color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    line-height: 1.5; cursor: pointer;
+  }
+  .cal-chip-more { font-size: .6rem; color: var(--text-muted); padding: 0 2px; }
+
+  .cal-day-panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .cal-day-panel-date { font-size: .95rem; font-weight: 700; }
+  .cal-ev-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 6px; border: 1px solid var(--border);
+    margin-bottom: 6px; cursor: pointer; transition: background .1s;
+  }
+  .cal-ev-row:hover { background: var(--bg); }
+  .cal-ev-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .cal-ev-info { flex: 1; min-width: 0; }
+  .cal-ev-title { font-size: .84rem; font-weight: 600; }
+  .cal-ev-sub { font-size: .72rem; color: var(--text-muted); margin-top: 1px; }
+
+  .cal-color-swatch {
+    width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: border-color .1s, transform .1s; flex-shrink: 0;
+  }
+  .cal-color-swatch.selected { border-color: var(--text); transform: scale(1.18); }
+  .cal-input {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: var(--radius); font-size: .85rem; background: var(--bg); color: var(--text);
+    font-family: inherit;
+  }
+  .cal-input:focus { outline: none; border-color: #999; }
+  .cal-event-modal-box {
+    background: var(--surface); border-radius: 12px; padding: 20px;
+    width: 380px; max-width: 100%;
+    box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  }
+
   /* ─── バックアップモーダル ─── */
   .backup-overlay {
     position: fixed; inset: 0;
@@ -1018,6 +1087,7 @@
   <button class="tab-btn" data-tab="study">勉強</button>
   <button class="tab-btn" data-tab="progress">進捗</button>
   <button class="tab-btn" data-tab="roadmap">道筋</button>
+  <button class="tab-btn" data-tab="calendar">カレンダー</button>
 </div>
 
 <!-- タスクタブ -->
@@ -1289,6 +1359,35 @@
 
 </div><!-- /tab-roadmap -->
 
+<div class="tab-content" id="tab-calendar">
+  <div class="study-card">
+    <div class="cal-header">
+      <button class="btn-ghost cal-nav" id="cal-prev">‹</button>
+      <span class="cal-title" id="cal-month-title"></span>
+      <button class="btn-ghost cal-nav" id="cal-next">›</button>
+      <button class="btn-primary" id="cal-add-btn" style="font-size:.8rem;padding:6px 12px">＋ 追加</button>
+    </div>
+    <div class="cal-grid" id="cal-labels">
+      <div class="cal-label sun">日</div>
+      <div class="cal-label">月</div>
+      <div class="cal-label">火</div>
+      <div class="cal-label">水</div>
+      <div class="cal-label">木</div>
+      <div class="cal-label">金</div>
+      <div class="cal-label sat">土</div>
+    </div>
+    <div class="cal-grid" id="cal-body" style="margin-top:1px"></div>
+  </div>
+
+  <div class="study-card" id="cal-day-panel" style="display:none">
+    <div class="cal-day-panel-header">
+      <span class="cal-day-panel-date" id="cal-day-title"></span>
+      <button class="btn-ghost" id="cal-day-add-btn" style="font-size:.78rem">＋ 追加</button>
+    </div>
+    <div id="cal-day-events"></div>
+  </div>
+</div><!-- /tab-calendar -->
+
 <!-- 週次レビューモーダル -->
 <div class="review-overlay" id="review-modal" style="display:none">
   <div class="review-box">
@@ -1340,6 +1439,34 @@
     <div class="material-divider"></div>
     <p class="material-section-label">マイ教材</p>
     <div class="my-material-list" id="my-material-list"></div>
+  </div>
+</div>
+
+<!-- カレンダーイベントモーダル -->
+<div class="backup-overlay" id="cal-event-modal" style="display:none">
+  <div class="cal-event-modal-box">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h3 style="margin:0;font-size:1rem" id="cal-modal-title">予定を追加</h3>
+      <button class="btn-ghost" id="cal-modal-close" style="font-size:.9rem;padding:4px 8px">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <input class="cal-input" type="text" id="cal-ev-title" placeholder="タイトル *">
+      <input class="cal-input" type="date" id="cal-ev-date">
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="cal-input" type="time" id="cal-ev-start" style="flex:1">
+        <span style="color:var(--text-muted);font-size:.85rem">〜</span>
+        <input class="cal-input" type="time" id="cal-ev-end" style="flex:1">
+      </div>
+      <div>
+        <p style="font-size:.78rem;color:var(--text-muted);margin-bottom:7px">色</p>
+        <div id="cal-color-picker" style="display:flex;gap:7px;flex-wrap:wrap"></div>
+      </div>
+      <textarea class="cal-input" id="cal-ev-note" placeholder="メモ（任意）" rows="2" style="resize:vertical"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-primary" id="cal-ev-save" style="flex:1">保存</button>
+      <button class="btn-ghost" id="cal-ev-delete" style="display:none;color:#e05252">削除</button>
+    </div>
   </div>
 </div>
 
@@ -1396,7 +1523,7 @@ async function syncToFirestore() {
   setSyncStatus('syncing');
   try {
     await fbDb.doc(`braindump/${currentUser.uid}`).set(
-      { tasks, logs, studyLogs, studyNotes, progressLogs, roadmaps, collapsed, materials, updatedAt: Date.now() }
+      { tasks, logs, studyLogs, studyNotes, progressLogs, roadmaps, collapsed, materials, events, updatedAt: Date.now() }
     );
     setSyncStatus('synced');
   } catch(e) {
@@ -1422,6 +1549,7 @@ async function loadFromFirestore(uid) {
         if (Array.isArray(d.studyNotes))   { studyNotes   = d.studyNotes;   localStorage.setItem('bd_study_notes',  JSON.stringify(studyNotes)); }
         if (Array.isArray(d.progressLogs)) { progressLogs = d.progressLogs; localStorage.setItem('bd_progress',     JSON.stringify(progressLogs)); }
         if (Array.isArray(d.roadmaps))     { roadmaps     = d.roadmaps;     localStorage.setItem('bd_roadmaps',     JSON.stringify(roadmaps)); }
+        if (Array.isArray(d.events))       { events       = d.events;       localStorage.setItem('bd_events',       JSON.stringify(events)); }
         if (d.collapsed && typeof d.collapsed === 'object') { collapsed = d.collapsed; localStorage.setItem('bd_collapsed', JSON.stringify(collapsed)); }
         // ローカルタイムスタンプをFirestoreに合わせる
         localUpdatedAt = firestoreTs;
@@ -1433,10 +1561,10 @@ async function loadFromFirestore(uid) {
     } else {
       // Firestore にデータなし → ローカルデータをアップロード
       const hasLocal = tasks.length > 0 || logs.length > 0 || studyLogs.length > 0
-                    || studyNotes.length > 0 || progressLogs.length > 0 || roadmaps.length > 0;
+                    || studyNotes.length > 0 || progressLogs.length > 0 || roadmaps.length > 0 || events.length > 0;
       if (hasLocal) await syncToFirestore();
     }
-    render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderProgressList(); renderRoadmapList(); renderMaterialSelector();
+    render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderProgressList(); renderRoadmapList(); renderMaterialSelector(); renderCalendar();
     setSyncStatus('synced');
   } catch(e) {
     console.error('Load error:', e);
@@ -1498,6 +1626,8 @@ function loadProgressLogs()  { try { return JSON.parse(localStorage.getItem('bd_
 function saveProgressLogs()  { localStorage.setItem('bd_progress',      JSON.stringify(progressLogs)); scheduleSync(); }
 function loadRoadmaps()      { try { return JSON.parse(localStorage.getItem('bd_roadmaps')     || '[]'); } catch { return []; } }
 function saveRoadmaps()      { localStorage.setItem('bd_roadmaps',      JSON.stringify(roadmaps));      scheduleSync(); }
+function loadEvents()        { try { return JSON.parse(localStorage.getItem('bd_events')       || '[]'); } catch { return []; } }
+function saveEvents()        { localStorage.setItem('bd_events',        JSON.stringify(events));        scheduleSync(); }
 
 // ─── 状態 ───
 let tasks = loadTasks();
@@ -1510,6 +1640,7 @@ let materials = loadMaterials();
 let studyNotes    = loadStudyNotes();
 let progressLogs  = loadProgressLogs();
 let roadmaps      = loadRoadmaps();
+let events        = loadEvents();
 let progressDraft        = null; // { fileName, body, date }
 const PROGRESS_DEFAULT_TAGS = ['C++', '基本情報', '復習', 'Siv3D', 'アルゴリズム'];
 let progressTagPool      = [...PROGRESS_DEFAULT_TAGS];
@@ -3088,7 +3219,7 @@ function trimBackups(list) {
   }
 }
 function snapshotData() {
-  return { tasks, logs, studyLogs, studyNotes, progressLogs, roadmaps, materials };
+  return { tasks, logs, studyLogs, studyNotes, progressLogs, roadmaps, materials, events };
 }
 function createBackup(name) {
   const list = loadBackups();
@@ -3126,8 +3257,9 @@ function restoreBackup(entry) {
   if (Array.isArray(d.progressLogs)){ progressLogs = d.progressLogs; localStorage.setItem('bd_progress',  JSON.stringify(progressLogs)); }
   if (Array.isArray(d.roadmaps))    { roadmaps = d.roadmaps;       localStorage.setItem('bd_roadmaps',   JSON.stringify(roadmaps)); }
   if (Array.isArray(d.materials))   { materials = d.materials;     localStorage.setItem('bd_materials',  JSON.stringify(materials)); }
+  if (Array.isArray(d.events))      { events = d.events;           localStorage.setItem('bd_events',     JSON.stringify(events)); }
   scheduleSync();
-  render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderProgressList(); renderRoadmapList(); renderMaterialSelector();
+  render(); renderLogs(); renderStudyLogs(); renderStudyNotes(); renderProgressList(); renderRoadmapList(); renderMaterialSelector(); renderCalendar();
   showToast('復元しました');
   document.getElementById('backup-modal').style.display = 'none';
 }
@@ -3201,6 +3333,208 @@ document.getElementById('backup-list').addEventListener('click', e => {
   else if (action === 'del') deleteBackup(btn.dataset.id);
 });
 
+// ─── カレンダー ───
+const CAL_COLORS = ['#5b4cdb','#3aaa60','#e05252','#d4a017','#4a9eda','#e08c30','#b06cdb','#e07090'];
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
+let calSelectedDate = null;
+let calEditId = null;
+let calSelectedColor = CAL_COLORS[0];
+
+function calDateStr(y, m, d) {
+  return y + '-' + String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+}
+
+function renderCalendar() {
+  const grid = document.getElementById('cal-body');
+  if (!grid) return;
+
+  document.getElementById('cal-month-title').textContent = calYear + '年' + (calMonth + 1) + '月';
+
+  const now = new Date();
+  const todayStr = calDateStr(now.getFullYear(), now.getMonth()+1, now.getDate());
+
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const daysInPrev  = new Date(calYear, calMonth, 0).getDate();
+
+  const cells = [];
+  for (let i = firstDow - 1; i >= 0; i--) {
+    const py = calMonth === 0 ? calYear - 1 : calYear;
+    const pm = calMonth === 0 ? 12 : calMonth;
+    cells.push({ d: daysInPrev - i, y: py, m: pm, other: true });
+  }
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ d, y: calYear, m: calMonth + 1, other: false });
+  while (cells.length < 42) {
+    const i = cells.length - firstDow - daysInMonth + 1;
+    const ny = calMonth === 11 ? calYear + 1 : calYear;
+    const nm = calMonth === 11 ? 1 : calMonth + 2;
+    cells.push({ d: i, y: ny, m: nm, other: true });
+  }
+
+  grid.innerHTML = cells.map((c, idx) => {
+    const dow = idx % 7;
+    const dateStr = calDateStr(c.y, c.m, c.d);
+    const dayEvs = events.filter(e => e.date === dateStr).sort((a,b) => (a.startTime||'').localeCompare(b.startTime||''));
+    let cls = 'cal-cell';
+    if (c.other) cls += ' other-month';
+    if (dateStr === todayStr) cls += ' today';
+    if (dateStr === calSelectedDate) cls += ' selected';
+    if (dow === 0) cls += ' sun';
+    if (dow === 6) cls += ' sat';
+
+    const chips = dayEvs.slice(0,3).map(ev =>
+      '<div class="cal-chip" style="background:' + ev.color + '" data-evid="' + ev.id + '">' +
+        (ev.startTime ? ev.startTime.replace(':','時') + '分 ' : '') + escHtml(ev.title) +
+      '</div>'
+    ).join('');
+    const more = dayEvs.length > 3 ? '<div class="cal-chip-more">+' + (dayEvs.length-3) + '</div>' : '';
+
+    return '<div class="' + cls + '" data-date="' + dateStr + '">' +
+      '<div class="cal-day-num">' + c.d + '</div>' +
+      '<div class="cal-chips">' + chips + more + '</div>' +
+    '</div>';
+  }).join('');
+
+  if (calSelectedDate) renderCalDayPanel(calSelectedDate);
+  else document.getElementById('cal-day-panel').style.display = 'none';
+}
+
+function renderCalDayPanel(dateStr) {
+  const panel = document.getElementById('cal-day-panel');
+  if (!panel) return;
+  panel.style.display = 'block';
+  const [y, m, d] = dateStr.split('-');
+  document.getElementById('cal-day-title').textContent = y + '年' + parseInt(m) + '月' + parseInt(d) + '日';
+  const dayEvs = events.filter(e => e.date === dateStr).sort((a,b) => (a.startTime||'').localeCompare(b.startTime||''));
+  const el = document.getElementById('cal-day-events');
+  if (dayEvs.length === 0) {
+    el.innerHTML = '<p style="font-size:.8rem;color:var(--text-muted);text-align:center;padding:12px 0">予定がありません</p>';
+    return;
+  }
+  el.innerHTML = dayEvs.map(ev => {
+    const time = ev.startTime ? ev.startTime + (ev.endTime ? ' 〜 ' + ev.endTime : '') : '';
+    return '<div class="cal-ev-row" data-evid="' + ev.id + '">' +
+      '<div class="cal-ev-dot" style="background:' + ev.color + '"></div>' +
+      '<div class="cal-ev-info">' +
+        '<div class="cal-ev-title">' + escHtml(ev.title) + '</div>' +
+        (time ? '<div class="cal-ev-sub">' + time + '</div>' : '') +
+        (ev.note ? '<div class="cal-ev-sub">' + escHtml(ev.note) + '</div>' : '') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderColorSwatches() {
+  const c = document.getElementById('cal-color-picker');
+  if (!c) return;
+  c.innerHTML = CAL_COLORS.map(col =>
+    '<div class="cal-color-swatch' + (col === calSelectedColor ? ' selected' : '') +
+    '" style="background:' + col + '" data-color="' + col + '"></div>'
+  ).join('');
+}
+
+function openEventModal(dateStr, evId) {
+  calEditId = evId || null;
+  calSelectedColor = evId ? (events.find(e => e.id === evId) || {}).color || CAL_COLORS[0] : CAL_COLORS[0];
+  renderColorSwatches();
+  if (evId) {
+    const ev = events.find(e => e.id === evId);
+    if (!ev) return;
+    document.getElementById('cal-modal-title').textContent = '予定を編集';
+    document.getElementById('cal-ev-title').value   = ev.title;
+    document.getElementById('cal-ev-date').value    = ev.date;
+    document.getElementById('cal-ev-start').value   = ev.startTime || '';
+    document.getElementById('cal-ev-end').value     = ev.endTime || '';
+    document.getElementById('cal-ev-note').value    = ev.note || '';
+    document.getElementById('cal-ev-delete').style.display = '';
+  } else {
+    document.getElementById('cal-modal-title').textContent = '予定を追加';
+    document.getElementById('cal-ev-title').value   = '';
+    document.getElementById('cal-ev-date').value    = dateStr || '';
+    document.getElementById('cal-ev-start').value   = '';
+    document.getElementById('cal-ev-end').value     = '';
+    document.getElementById('cal-ev-note').value    = '';
+    document.getElementById('cal-ev-delete').style.display = 'none';
+  }
+  document.getElementById('cal-event-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('cal-ev-title').focus(), 50);
+}
+
+function saveCalEvent() {
+  const title = document.getElementById('cal-ev-title').value.trim();
+  const date  = document.getElementById('cal-ev-date').value;
+  if (!title) { showToast('タイトルを入力してください'); return; }
+  if (!date)  { showToast('日付を選択してください'); return; }
+  const ev = {
+    id: calEditId || uid(),
+    title, date,
+    startTime: document.getElementById('cal-ev-start').value || '',
+    endTime:   document.getElementById('cal-ev-end').value   || '',
+    color: calSelectedColor,
+    note: document.getElementById('cal-ev-note').value.trim(),
+  };
+  if (calEditId) {
+    const idx = events.findIndex(e => e.id === calEditId);
+    if (idx !== -1) events[idx] = ev; else events.push(ev);
+  } else {
+    events.push(ev);
+  }
+  saveEvents();
+  calSelectedDate = date;
+  renderCalendar();
+  document.getElementById('cal-event-modal').style.display = 'none';
+  showToast(calEditId ? '予定を更新しました' : '予定を追加しました');
+}
+
+function deleteCalEvent(id) {
+  if (!confirm('この予定を削除しますか？')) return;
+  events = events.filter(e => e.id !== id);
+  saveEvents();
+  renderCalendar();
+  document.getElementById('cal-event-modal').style.display = 'none';
+  showToast('予定を削除しました');
+}
+
+// カレンダーイベントリスナー
+document.getElementById('cal-prev').addEventListener('click', () => {
+  calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar();
+});
+document.getElementById('cal-next').addEventListener('click', () => {
+  calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar();
+});
+document.getElementById('cal-body').addEventListener('click', e => {
+  const chip = e.target.closest('.cal-chip');
+  if (chip) { e.stopPropagation(); openEventModal(null, chip.dataset.evid); return; }
+  const cell = e.target.closest('.cal-cell');
+  if (cell) { calSelectedDate = cell.dataset.date; renderCalendar(); }
+});
+document.getElementById('cal-day-panel').addEventListener('click', e => {
+  const row = e.target.closest('.cal-ev-row');
+  if (row) openEventModal(null, row.dataset.evid);
+});
+document.getElementById('cal-add-btn').addEventListener('click', () => {
+  const today = new Date();
+  openEventModal(calSelectedDate || calDateStr(today.getFullYear(), today.getMonth()+1, today.getDate()));
+});
+document.getElementById('cal-day-add-btn').addEventListener('click', () => openEventModal(calSelectedDate));
+document.getElementById('cal-modal-close').addEventListener('click', () => {
+  document.getElementById('cal-event-modal').style.display = 'none';
+});
+document.getElementById('cal-event-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('cal-event-modal'))
+    document.getElementById('cal-event-modal').style.display = 'none';
+});
+document.getElementById('cal-ev-save').addEventListener('click', saveCalEvent);
+document.getElementById('cal-ev-delete').addEventListener('click', () => deleteCalEvent(calEditId));
+document.getElementById('cal-color-picker').addEventListener('click', e => {
+  const sw = e.target.closest('.cal-color-swatch');
+  if (!sw) return;
+  calSelectedColor = sw.dataset.color;
+  renderColorSwatches();
+});
+
+renderCalendar();
 checkAutoBackup();
 </script>
 </body>
